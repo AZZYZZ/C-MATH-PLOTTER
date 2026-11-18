@@ -747,6 +747,47 @@ button {
     color: #a3e635;
 }
 
+.app-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 20px;
+    padding: 14px 4px 2px;
+    border-top: 1px solid var(--line);
+    color: #6f7c8d;
+    font-size: 0.7rem;
+}
+
+.footer-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #aeb9c8;
+    font-weight: 650;
+    letter-spacing: 0.03em;
+}
+
+.footer-brand > span {
+    color: var(--lime);
+    font: 1rem Georgia, serif;
+}
+
+.footer-separator {
+    padding: 0 3px;
+    color: var(--lime);
+}
+
+.footer-email {
+    color: #8f9bab;
+    text-decoration: none;
+    transition: color 160ms ease;
+}
+
+.footer-email:hover {
+    color: var(--lime);
+}
+
 button:focus-visible,
 input:focus-visible {
     outline: 2px solid rgba(163, 230, 53, 0.75);
@@ -862,6 +903,12 @@ input:focus-visible {
 
     .graph-hint {
         text-align: left;
+    }
+
+    .app-footer {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
     }
 }
 
