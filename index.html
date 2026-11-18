@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#090d12">
+    <title>C-Math Plotter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-mark" aria-hidden="true">∫</div>
+                <div>
+                    <h1>C-MATH <span>PLOTTER</span></h1>
+                    <p>Calcul numérique et visualisation interactive</p>
+                </div>
+            </div>
+            <div class="backend-status is-checking" id="backendStatus" role="status" aria-live="polite">
+                <span class="status-dot" aria-hidden="true"></span>
+                <span id="backendStatusText">Connexion au moteur C...</span>
+            </div>
+        </header>
+
+        <main class="dashboard">
+            <aside class="controls-panel">
+                <div class="panel-heading">
+                    <div>
+                        <span class="eyebrow">ESPACE DE TRAVAIL</span>
+                        <h2>Votre fonction</h2>
+                    </div>
+                    <span class="panel-index">01</span>
+                </div>
+
+                <section class="expression-section" aria-label="Expression mathématique">
+                    <label class="field-label" for="expr">Expression <span>f(x)</span></label>
+                    <div class="expression-input-row">
+                        <div class="expression-input">
+                            <span class="expression-prefix">f(x) =</span>
+                            <input type="text" id="expr" value="sin(x) * x"
+                                   placeholder="ex: x^2 - 4, cos(x), sqrt(abs(x))"
+                                   autocomplete="off" spellcheck="false">
+                        </div>
+                        <button class="keypad-toggle" id="keypadToggle" type="button"
+                                aria-expanded="false" aria-controls="mathKeyboard">
+                            <span aria-hidden="true">⌨</span>
+                            <span>Clavier</span>
+                            <span class="toggle-chevron" aria-hidden="true">⌄</span>
+                        </button>
+                    </div>
+
+                    <div class="math-keyboard" id="mathKeyboard" hidden>
+                        <div class="key-group">
+                            <span class="key-group-title">Variables & constantes</span>
+                            <div class="key-grid key-grid-three">
+                                <button type="button" class="math-key" data-insert="x">x</button>
+                                <button type="button" class="math-key" data-insert="pi">π</button>
+                                <button type="button" class="math-key" data-insert="e">e</button>
+                            </div>
+                        </div>
+                        <div class="key-group">
+                            <span class="key-group-title">Opérateurs</span>
+                            <div class="key-grid">
+                                <button type="button" class="math-key" data-insert="+">+</button>
+                                <button type="button" class="math-key" data-insert="-">−</button>
+                                <button type="button" class="math-key" data-insert="*">×</button>
+                                <button type="button" class="math-key" data-insert="/">÷</button>
+                                <button type="button" class="math-key" data-insert="^">^</button>
+                                <button type="button" class="math-key" data-insert="(">(</button>
+                                <button type="button" class="math-key" data-insert=")">)</button>
+                                <button type="button" class="math-key" data-insert=".">.</button>
+                            </div>
+                        </div>
+                        <div class="key-group">
+                            <span class="key-group-title">Fonctions</span>
+                            <div class="key-grid">
+                                <button type="button" class="math-key function-key" data-insert="sin()" data-caret="4">sin</button>
+                                <button type="button" class="math-key function-key" data-insert="cos()" data-caret="4">cos</button>
+                                <button type="button" class="math-key function-key" data-insert="tan()" data-caret="4">tan</button>
+                                <button type="button" class="math-key function-key" data-insert="sqrt()" data-caret="5">√</button>
+                                <button type="button" class="math-key function-key" data-insert="abs()" data-caret="4">abs</button>
+                                <button type="button" class="math-key function-key" data-insert="ln()" data-caret="3">ln</button>
+                                <button type="button" class="math-key function-key" data-insert="log()" data-caret="4">log</button>
+                                <button type="button" class="math-key function-key" data-insert="exp()" data-caret="4">exp</button>
+                            </div>
+                        </div>
+                        <div class="key-grid keypad-controls">
+                            <button type="button" class="math-key utility-key" data-key-action="backspace" aria-label="Retour arrière">⌫</button>
+                            <button type="button" class="math-key utility-key" data-key-action="clear">C</button>
+                            <button type="button" class="math-key plot-key" data-key-action="plot">= Tracer</button>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="section-divider"></div>
+                <div class="panel-subheading">
+                    <span class="field-label">Paramètres du graphe</span>
+                    <span class="eyebrow">02</span>
+                </div>
+                <div class="range-grid">
+                    <div class="input-group">
+                        <label for="xmin">X minimum</label>
+                        <input type="number" id="xmin" value="-10" step="any">
+                    </div>
+                    <div class="input-group">
+                        <label for="xmax">X maximum</label>
+                        <input type="number" id="xmax" value="10" step="any">
+                    </div>
+                    <div class="input-group x-value-group">
+                        <label for="xval">Évaluer f(x) pour x =</label>
+                        <input type="number" id="xval" value="2" step="any">
+                    </div>
+                </div>
+                <button id="plotBtn" class="plot-button" type="button">
+                    <span>Calculer & tracer</span>
+                    <span aria-hidden="true">↗</span>
+                </button>
+
+                <label class="derivative-toggle" for="showDerivative">
+                    <span class="toggle-copy">
+                        <span class="toggle-title">Afficher la dérivée</span>
+                        <span class="toggle-subtitle">Tracer f'(x) en cyan</span>
+                    </span>
+                    <input type="checkbox" id="showDerivative">
+                    <span class="switch" aria-hidden="true"></span>
+                </label>
+
+                <div class="section-divider"></div>
+                <div class="panel-subheading">
+                    <span class="field-label">Exemples rapides</span>
+                    <span class="eyebrow">03</span>
+                </div>
+                <div class="presets">
+                    <button class="preset" type="button" data-fn="sin(x) * x"><span>sin(x) · x</span><span>↗</span></button>
+                    <button class="preset" type="button" data-fn="x^3 - 3*x"><span>x³ − 3x</span><span>↗</span></button>
+                    <button class="preset" type="button" data-fn="cos(x) / (1 + x^2)"><span>cos(x) / (1 + x²)</span><span>↗</span></button>
+                    <button class="preset" type="button" data-fn="tan(x)"><span>tan(x)</span><span>↗</span></button>
+                    <button class="preset" type="button" data-fn="exp(-0.2*x) * sin(3*x)"><span>Onde amortie</span><span>↗</span></button>
+                </div>
+            </aside>
+
+            <section class="graph-panel" aria-label="Graphe de la fonction">
+                <div class="graph-heading">
+                    <div>
+                        <span class="eyebrow">VISUALISATION</span>
+                        <h2>Graphe <span class="live-mark"></span></h2>
+                    </div>
+                    <div class="graph-actions">
+                        <button id="resetBtn" class="secondary-btn" type="button">
+                            <span aria-hidden="true">⟳</span> Réinitialiser
+                        </button>
+                        <button id="exportBtn" class="secondary-btn export-button" type="button">
+                            <span aria-hidden="true">↓</span> Exporter PNG
+                        </button>
+                    </div>
+                </div>
+
+                <div class="result-bar" id="resultBar">
+                    <span class="result-item"><span class="result-label">f(x)</span><strong id="fResult">...</strong></span>
+                    <span class="result-item"><span class="result-label">f'(x)</span><strong id="derivativeResult">...</strong></span>
+                    <span class="result-item integral-result"><span class="result-label">∫ f(x) dx</span><strong id="integralResult">...</strong></span>
+                </div>
+
+                <div class="canvas-wrapper">
+                    <canvas id="graph" width="900" height="480" aria-label="Graphe interactif de la fonction"></canvas>
+                    <div class="graph-tooltip" id="graphTooltip" role="status" aria-live="polite"></div>
+                    <div class="canvas-loading" id="canvasLoading" aria-live="polite">
+                        <span class="loading-spinner" aria-hidden="true"></span>
+                        <span>Calcul du graphe...</span>
+                    </div>
+                </div>
+                <div class="graph-footer">
+                    <div class="legend">
+                        <span><i class="legend-line function-line"></i> f(x)</span>
+                        <span class="derivative-legend"><i class="legend-line derivative-line"></i> f'(x)</span>
+                    </div>
+                    <span class="graph-hint">Molette pour zoomer <span>·</span> Glisser pour déplacer</span>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
