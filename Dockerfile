@@ -12,7 +12,7 @@ FROM debian:bookworm-slim
 
 WORKDIR /app
 COPY --from=build /src/server ./server
-COPY index.html style.css script.js ./
+COPY index.html style.css script.js favicon.jpeg ./
 
 ENV PORT=8080
 EXPOSE 8080

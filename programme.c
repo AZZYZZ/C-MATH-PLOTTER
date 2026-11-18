@@ -408,6 +408,10 @@ int main(void) {
         } else if (strcmp(request_path, "/script.js") == 0) {
             static_filename = "script.js";
             static_content_type = "text/javascript; charset=utf-8";
+        } else if (strcmp(request_path, "/favicon.jpeg") == 0 ||
+                   strcmp(request_path, "/favicon.ico") == 0) {
+            static_filename = "favicon.jpeg";
+            static_content_type = "image/jpeg";
         }
         if (static_filename) {
             (void)serve_static_file(client, static_filename, static_content_type);
