@@ -15,6 +15,9 @@ const canvasLoading = document.getElementById("canvasLoading");
 const keypadToggle = document.getElementById("keypadToggle");
 const mathKeyboard = document.getElementById("mathKeyboard");
 const derivativeLegend = document.querySelector(".derivative-legend");
+const guideDialog = document.getElementById("guideDialog");
+const guideOpenButton = document.getElementById("guideOpenButton");
+const guideCloseButton = document.getElementById("guideCloseButton");
 
 const initialView = { xmin: -10, xmax: 10 };
 const plotBounds = { left: 58, right: 18, top: 20, bottom: 42 };
@@ -39,10 +42,10 @@ function setBackendStatus(state) {
     backendStatus.classList.remove("is-online", "is-offline", "is-checking");
     backendStatus.classList.add(`is-${state}`);
     backendStatusText.textContent = state === "online"
-        ? "Moteur C connecté"
+        ? "C Engine online"
         : state === "offline"
-            ? "Moteur C hors ligne"
-            : "Connexion au moteur C...";
+            ? "C Engine offline"
+            : "C Engine waking up...";
 }
 
 function setLoading(isLoading) {
@@ -522,6 +525,18 @@ document.getElementById("exportBtn").addEventListener("click", () => {
     link.href = canvas.toDataURL("image/png");
     link.click();
 });
+guideOpenButton.addEventListener("click", () => guideDialog.showModal());
+guideCloseButton.addEventListener("click", () => guideDialog.close());
+guideDialog.addEventListener("click", event => {
+    if (event.target === guideDialog) guideDialog.close();
+});
+guideDialog.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+        event.preventDefault();
+        guideDialog.close();
+    }
+});
+guideDialog.addEventListener("close", () => guideOpenButton.focus());
 showDerivativeInput.addEventListener("change", drawGraph);
 keypadToggle.addEventListener("click", () => {
     const isExpanded = keypadToggle.getAttribute("aria-expanded") === "true";
