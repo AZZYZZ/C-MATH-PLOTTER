@@ -1098,27 +1098,40 @@ a:focus-visible {
     }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 640px) {
+    html,
+    body {
+        overflow-x: hidden;
+    }
+
     body {
         padding: 12px;
+        overflow-x: clip;
     }
 
     .topbar {
-        gap: 10px;
-        padding: 8px 0;
+        gap: 7px;
+        margin-bottom: 12px;
+        padding: 5px 0;
     }
 
     .brand {
         flex-basis: 100%;
+        gap: 9px;
     }
 
     .brand-icon {
-        width: 39px;
-        height: 39px;
+        width: 35px;
+        height: 35px;
     }
 
     .brand h1 {
-        font-size: 1rem;
+        font-size: 0.96rem;
+    }
+
+    .engine-badge {
+        padding: 2px 6px;
+        font-size: 0.56rem;
     }
 
     .brand p {
@@ -1127,25 +1140,74 @@ a:focus-visible {
 
     .header-actions {
         width: 100%;
+        min-width: 0;
+        flex: 1 1 100%;
+        flex-wrap: wrap;
         justify-content: space-between;
-    }
-
-    .header-button {
-        min-height: 36px;
         gap: 6px;
-        padding: 0 9px;
-        font-size: 0.72rem;
     }
 
+    .header-button,
     .backend-status {
-        min-height: 36px;
-        gap: 7px;
-        padding: 0 9px;
-        font-size: 0.7rem;
+        min-height: 31px;
+        gap: 6px;
+        padding: 5px 10px;
+        font-size: 0.75rem;
+    }
+
+    .guide-question {
+        width: 16px;
+        height: 16px;
+    }
+
+    .controls-panel,
+    .graph-panel {
+        padding: 14px;
+    }
+
+    .keypad-toggle,
+    .secondary-btn,
+    .preset {
+        min-height: 32px;
+        padding: 7px 12px;
+        font-size: 0.8rem;
+    }
+
+    .keypad-toggle {
+        min-width: 0;
+    }
+
+    .graph-actions {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .math-keyboard {
+        gap: 10px;
+        margin-top: 9px;
+        padding: 10px;
+    }
+
+    .key-group {
+        gap: 6px;
+    }
+
+    .key-grid {
+        gap: 4px;
+    }
+
+    .math-key {
+        min-height: 32px;
+        padding: 8px 4px;
+        font-size: 0.8rem;
+    }
+
+    .function-key {
+        font-size: 0.73rem;
     }
 
     .guide-card {
-        padding: 18px;
+        padding: 16px;
     }
 
     .guide-grid {
@@ -1180,9 +1242,17 @@ a:focus-visible {
     }
 
     .app-footer {
-        align-items: flex-start;
+        align-items: center;
         flex-direction: column;
-        gap: 6px;
+        gap: 5px;
+        margin-top: 14px;
+        padding: 10px 0 calc(24px + env(safe-area-inset-bottom));
+        font-size: 0.8rem;
+        text-align: center;
+    }
+
+    .footer-brand {
+        justify-content: center;
     }
 }
 
