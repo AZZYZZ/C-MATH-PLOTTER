@@ -821,22 +821,28 @@ document.getElementById("exportBtn").addEventListener("click", () => {
     link.click();
 });
 addGButton.addEventListener("click", () => {
+    gExpressionRow.style.removeProperty("display");
     gExpressionRow.hidden = false;
+    addGButton.style.removeProperty("display");
     addGButton.hidden = true;
     addGButton.setAttribute("aria-expanded", "true");
     updateGResultPending();
     focusExpression(gExprInput, true);
 });
 removeGButton.addEventListener("click", () => {
+    gExpressionRow.style.removeProperty("display");
     gExpressionRow.hidden = true;
+    addGButton.style.removeProperty("display");
     addGButton.hidden = false;
     addGButton.setAttribute("aria-expanded", "false");
     gExprInput.value = "";
     gData = null;
-    updateGResultPending();
+    gResultItem.classList.add("is-hidden");
+    gResult.textContent = "";
     ++hoverRequestId;
     clearTimeout(hoverTimer);
     tooltip.style.display = "none";
+    activeInput = exprInput;
     focusExpression(exprInput, true);
     drawGraph();
     fetchAndPlot();

@@ -458,14 +458,14 @@ button {
     min-height: 42px;
     margin-top: var(--space-1);
     padding: 5px 12px;
-    border: 1px dashed var(--line-strong);
+    border: 1px dashed rgba(56, 189, 248, 0.35);
     border-radius: var(--radius-control);
-    background: transparent;
-    color: #9aa7b7;
+    background: rgba(56, 189, 248, 0.035);
+    color: var(--cyan);
     cursor: pointer;
     font-size: 0.72rem;
     font-weight: 600;
-    transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+    transition: color 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
 
 .add-function-button[hidden] {
@@ -473,9 +473,19 @@ button {
 }
 
 .add-function-button:hover {
-    border-color: rgba(163, 230, 53, 0.45);
-    background: rgba(163, 230, 53, 0.06);
-    color: var(--lime);
+    border-color: rgba(56, 189, 248, 0.72);
+    background: rgba(56, 189, 248, 0.1);
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.1);
+}
+
+.add-function-button:active {
+    background: rgba(56, 189, 248, 0.15);
+}
+
+.add-function-button:focus-visible,
+.remove-function-button:focus-visible {
+    outline: 2px solid rgba(56, 189, 248, 0.8);
+    outline-offset: 2px;
 }
 
 .g-expression-row {
@@ -507,16 +517,17 @@ button {
 .remove-function-button::before {
     position: absolute;
     inset: 8px;
-    border: 1px solid var(--line);
+    border: 1px solid rgba(148, 163, 184, 0.24);
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.035);
+    background: rgba(7, 11, 16, 0.5);
     content: "";
-    transition: border-color 160ms ease, background 160ms ease;
+    transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
 
 .remove-function-button:hover::before {
     border-color: rgba(251, 113, 133, 0.42);
     background: rgba(251, 113, 133, 0.08);
+    box-shadow: 0 0 12px rgba(251, 113, 133, 0.08);
 }
 
 .remove-function-button:hover {
