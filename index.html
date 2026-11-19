@@ -22,7 +22,7 @@
     <link rel="icon" type="image/jpeg" href="/favicon.jpeg?v=3">
     <link rel="shortcut icon" type="image/jpeg" href="/favicon.jpeg?v=3">
     <link rel="apple-touch-icon" href="/favicon.jpeg?v=3">
-    <link rel="stylesheet" href="style.css?v=4">
+    <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
     <div class="app">
@@ -231,6 +231,15 @@
                         <span class="eyebrow">VISUALISATION</span>
                         <h2>Graphe <span class="live-mark"></span></h2>
                     </div>
+                    <div class="graph-mode-switch" id="graphModeSwitch" role="group"
+                         aria-label="Fonctions affichées" hidden>
+                        <button class="graph-mode-button" type="button" data-mode="f"
+                                aria-pressed="false">f(x)</button>
+                        <button class="graph-mode-button" type="button" data-mode="g"
+                                aria-pressed="false">g(x)</button>
+                        <button class="graph-mode-button is-active" type="button" data-mode="both"
+                                aria-pressed="true">Les deux</button>
+                    </div>
                     <div class="graph-actions">
                         <button id="resetBtn" class="secondary-btn" type="button">
                             <span aria-hidden="true">⟳</span> Réinitialiser
@@ -248,6 +257,12 @@
                     <span class="result-item g-result is-hidden" id="gResultItem">
                         <span class="result-label">g(x)</span><strong id="gResult">...</strong>
                     </span>
+                    <span class="result-item g-result is-hidden" id="gDerivativeResultItem">
+                        <span class="result-label">g'(x)</span><strong id="gDerivativeResult"></strong>
+                    </span>
+                    <span class="result-item g-result is-hidden" id="gIntegralResultItem">
+                        <span class="result-label">∫ g(x) dx</span><strong id="gIntegralResult"></strong>
+                    </span>
                 </div>
 
                 <div class="canvas-wrapper">
@@ -260,9 +275,14 @@
                 </div>
                 <div class="graph-footer">
                     <div class="legend">
-                        <span><i class="legend-line function-line"></i> f(x)</span>
+                        <span class="f-legend"><i class="legend-line function-line"></i> f(x)</span>
+                        <span class="f-derivative-legend derivative-legend">
+                            <i class="legend-line derivative-line"></i> f'(x)
+                        </span>
                         <span class="g-legend is-hidden"><i class="legend-line g-line"></i> g(x)</span>
-                        <span class="derivative-legend"><i class="legend-line derivative-line"></i> f'(x)</span>
+                        <span class="g-derivative-legend is-hidden">
+                            <i class="legend-line g-derivative-line"></i> g'(x)
+                        </span>
                     </div>
                     <span class="graph-hint">Molette ou pincement pour zoomer <span>·</span> Glisser pour déplacer</span>
                 </div>
@@ -274,6 +294,6 @@
             <a class="footer-email" href="mailto:c.math.plotter@gmail.com">c.math.plotter@gmail.com</a>
         </footer>
     </div>
-    <script src="script.js?v=4" defer></script>
+    <script src="script.js?v=5" defer></script>
 </body>
 </html>

@@ -12,14 +12,22 @@ const derivativeResult = document.getElementById("derivativeResult");
 const integralResult = document.getElementById("integralResult");
 const gResultItem = document.getElementById("gResultItem");
 const gResult = document.getElementById("gResult");
+const gDerivativeResultItem = document.getElementById("gDerivativeResultItem");
+const gDerivativeResult = document.getElementById("gDerivativeResult");
+const gIntegralResultItem = document.getElementById("gIntegralResultItem");
+const gIntegralResult = document.getElementById("gIntegralResult");
 const canvasLoading = document.getElementById("canvasLoading");
 const keypadToggle = document.getElementById("keypadToggle");
 const mathKeyboard = document.getElementById("mathKeyboard");
 const addGButton = document.getElementById("addGButton");
 const gExpressionRow = document.getElementById("gExpressionRow");
 const removeGButton = document.getElementById("removeGButton");
-const derivativeLegend = document.querySelector(".derivative-legend");
+const graphModeSwitch = document.getElementById("graphModeSwitch");
+const graphModeButtons = graphModeSwitch.querySelectorAll("[data-mode]");
+const fLegend = document.querySelector(".f-legend");
+const fDerivativeLegend = document.querySelector(".f-derivative-legend");
 const gLegend = document.querySelector(".g-legend");
+const gDerivativeLegend = document.querySelector(".g-derivative-legend");
 const guideDialog = document.getElementById("guideDialog");
 const guideOpenButton = document.getElementById("guideOpenButton");
 const guideCloseButton = document.getElementById("guideCloseButton");
@@ -28,6 +36,7 @@ const initialView = { xmin: -10, xmax: 10 };
 const plotBounds = { left: 58, right: 18, top: 20, bottom: 42 };
 let currentData = null;
 let gData = null;
+let displayMode = "both";
 let view = { ...initialView };
 let hoverPoint = null;
 let hoverTimer = null;
@@ -67,7 +76,32 @@ function setLoading(isLoading) {
 function updateGResultPending() {
     const hasExpression = !gExpressionRow.hidden && Boolean(gExprInput.value.trim());
     gResultItem.classList.toggle("is-hidden", !hasExpression);
+    gDerivativeResultItem.classList.toggle("is-hidden", !hasExpression);
+    gIntegralResultItem.classList.toggle("is-hidden", !hasExpression);
     gResult.textContent = hasExpression ? "..." : "";
+    gDerivativeResult.textContent = hasExpression ? "..." : "";
+    gIntegralResult.textContent = hasExpression ? "..." : "";
+    updateDisplayModeUI();
+}
+
+function updateDisplayModeUI() {
+    const hasGExpression = !gExpressionRow.hidden && Boolean(gExprInput.value.trim());
+    graphModeSwitch.hidden = !hasGExpression;
+    graphModeButtons.forEach(button => {
+        const isActive = button.dataset.mode === displayMode;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+    });
+}
+
+function setDisplayMode(mode) {
+    displayMode = mode;
+    updateDisplayModeUI();
+    hoverPoint = null;
+    ++hoverRequestId;
+    clearTimeout(hoverTimer);
+    tooltip.style.display = "none";
+    drawGraph();
 }
 
 function setView(xmin, xmax) {
@@ -118,8 +152,13 @@ async function fetchAndPlot() {
         fResult.textContent = "—";
         derivativeResult.textContent = "—";
         integralResult.textContent = "—";
+        updateGResultPending();
         gResultItem.classList.add("is-hidden");
+        gDerivativeResultItem.classList.add("is-hidden");
+        gIntegralResultItem.classList.add("is-hidden");
         gResult.textContent = "";
+        gDerivativeResult.textContent = "";
+        gIntegralResult.textContent = "";
         setLoading(false);
         drawGraph();
         return;
@@ -149,11 +188,20 @@ async function fetchAndPlot() {
         gData = gExpression && currentGExpression === gExpression ? results[1] : null;
         const hasCurrentGExpression = Boolean(currentGExpression);
         gResultItem.classList.toggle("is-hidden", !hasCurrentGExpression);
+        gDerivativeResultItem.classList.toggle("is-hidden", !hasCurrentGExpression);
+        gIntegralResultItem.classList.toggle("is-hidden", !hasCurrentGExpression);
         gResult.textContent = !hasCurrentGExpression
             ? ""
             : gData
-                ? `g(${formatXValue(gData.xval)}) = ${formatNumber(gData.yval)}`
+                ? `g(${formatXValue(gData.xval)}) = ${formatNumber(gData.yval, 3)}`
                 : "...";
+        gDerivativeResult.textContent = hasCurrentGExpression && gData
+            ? formatNumber(gData.derivative, 3)
+            : hasCurrentGExpression ? "..." : "";
+        gIntegralResult.textContent = hasCurrentGExpression && gData
+            ? formatNumber(gData.integral, 3)
+            : hasCurrentGExpression ? "..." : "";
+        updateDisplayModeUI();
         fResult.textContent = `f(${formatXValue(currentData.xval)}) = ${formatNumber(currentData.yval)}`;
         derivativeResult.textContent = formatNumber(currentData.derivative);
         integralResult.textContent = formatNumber(currentData.integral);
@@ -166,7 +214,12 @@ async function fetchAndPlot() {
         gData = null;
         const hasGExpression = !gExpressionRow.hidden && Boolean(gExprInput.value.trim());
         gResultItem.classList.toggle("is-hidden", !hasGExpression);
+        gDerivativeResultItem.classList.toggle("is-hidden", !hasGExpression);
+        gIntegralResultItem.classList.toggle("is-hidden", !hasGExpression);
         gResult.textContent = hasGExpression ? "—" : "";
+        gDerivativeResult.textContent = hasGExpression ? "—" : "";
+        gIntegralResult.textContent = hasGExpression ? "—" : "";
+        updateDisplayModeUI();
         drawGraph();
     } finally {
         if (requestId === plotRequestId) setLoading(false);
@@ -220,7 +273,7 @@ function drawMinorGrid(min, max, majorStep, toPixel, horizontal, plotWidth, plot
     ctx.stroke();
 }
 
-function drawIntegralArea(points, xmin, xmax, baselineY, toX, toY, plotWidth, plotHeight) {
+function drawIntegralArea(points, xmin, xmax, baselineY, toX, toY, plotWidth, plotHeight, fillColor) {
     if (!Array.isArray(points) || !Number.isFinite(xmin) || !Number.isFinite(xmax) ||
         !Number.isFinite(baselineY) || typeof toX !== "function" ||
         typeof toY !== "function" || !Number.isFinite(plotWidth) ||
@@ -233,7 +286,7 @@ function drawIntegralArea(points, xmin, xmax, baselineY, toX, toY, plotWidth, pl
     ctx.beginPath();
     ctx.rect(plotBounds.left, plotBounds.top, plotWidth, plotHeight);
     ctx.clip();
-    ctx.fillStyle = "rgba(163, 230, 53, 0.18)";
+    ctx.fillStyle = fillColor;
 
     let segment = [];
     const fillSegment = () => {
@@ -263,12 +316,12 @@ function drawIntegralArea(points, xmin, xmax, baselineY, toX, toY, plotWidth, pl
     ctx.restore();
 }
 
-function drawIntegralBoundaries(xmin, xmax, toX, plotTop, plotBottom) {
+function drawIntegralBoundaries(xmin, xmax, toX, plotTop, plotBottom, color) {
     if (!Number.isFinite(xmin) || !Number.isFinite(xmax) ||
         !Number.isFinite(plotTop) || !Number.isFinite(plotBottom) ||
         typeof toX !== "function") return;
     ctx.save();
-    ctx.strokeStyle = "rgba(163, 230, 53, 0.48)";
+    ctx.strokeStyle = color;
     ctx.lineWidth = 1;
     ctx.setLineDash([4, 5]);
     ctx.beginPath();
@@ -334,17 +387,28 @@ function drawGraph() {
     if (!Number.isFinite(view.xmin) || !Number.isFinite(view.xmax) ||
         !Number.isFinite(view.xmax - view.xmin) || view.xmin >= view.xmax) return;
 
-    const hasCurrentData = currentData && Array.isArray(currentData.points);
+    const showF = displayMode !== "g";
+    const showG = displayMode !== "f";
+    const hasCurrentData = showF && currentData && Array.isArray(currentData.points);
+    const hasGData = showG && gData && Array.isArray(gData.points);
     const values = hasCurrentData ? getValidYValues(currentData.points) : [];
-    if (gData && Array.isArray(gData.points)) {
+    if (hasGData) {
         values.push(...getValidYValues(gData.points));
     }
     if (showDerivativeInput.checked && hasCurrentData &&
         Array.isArray(currentData.derivativePoints)) {
         values.push(...getValidYValues(currentData.derivativePoints));
     }
-    derivativeLegend.classList.toggle("is-hidden", !showDerivativeInput.checked);
-    gLegend.classList.toggle("is-hidden", !gData);
+    if (showDerivativeInput.checked && hasGData &&
+        Array.isArray(gData.derivativePoints)) {
+        values.push(...getValidYValues(gData.derivativePoints));
+    }
+    fLegend.classList.toggle("is-mode-hidden", !showF);
+    fDerivativeLegend.classList.toggle("is-mode-hidden", !showF);
+    fDerivativeLegend.classList.toggle("is-hidden", !showDerivativeInput.checked);
+    gLegend.classList.toggle("is-hidden", !hasGData);
+    gDerivativeLegend.classList.toggle("is-mode-hidden", !hasGData);
+    gDerivativeLegend.classList.toggle("is-hidden", !showDerivativeInput.checked);
     let ymin = values.length ? Math.min(...values) : -10;
     let ymax = values.length ? Math.max(...values) : 10;
     if (ymax - ymin < 1e-9) {
@@ -371,7 +435,16 @@ function drawGraph() {
     ctx.lineWidth = 1;
 
     if (hasCurrentData && Number.isFinite(currentData.integral)) {
-        drawIntegralArea(currentData.points, view.xmin, view.xmax, xAxisY, toX, toY, plotWidth, plotHeight);
+        drawIntegralArea(
+            currentData.points, view.xmin, view.xmax, xAxisY, toX, toY,
+            plotWidth, plotHeight, "rgba(163, 230, 53, 0.18)"
+        );
+    }
+    if (hasGData && Number.isFinite(gData.integral)) {
+        drawIntegralArea(
+            gData.points, view.xmin, view.xmax, xAxisY, toX, toY,
+            plotWidth, plotHeight, "rgba(56, 189, 248, 0.14)"
+        );
     }
 
     const xTicks = getTicks(view.xmin, view.xmax, Math.max(3, Math.floor(plotWidth / 90)));
@@ -424,18 +497,28 @@ function drawGraph() {
     ctx.stroke();
 
     if (hasCurrentData && Number.isFinite(currentData.integral)) {
-        drawIntegralBoundaries(view.xmin, view.xmax, toX, plotBounds.top, plotBounds.top + plotHeight);
+        drawIntegralBoundaries(
+            view.xmin, view.xmax, toX, plotBounds.top, plotBounds.top + plotHeight,
+            "rgba(163, 230, 53, 0.48)"
+        );
+    }
+    if (hasGData && Number.isFinite(gData.integral)) {
+        drawIntegralBoundaries(
+            view.xmin, view.xmax, toX, plotBounds.top, plotBounds.top + plotHeight,
+            "rgba(56, 189, 248, 0.48)"
+        );
     }
 
     if (hasCurrentData) {
         drawSeries(currentData.points, "#a3e635", 2.5, false, true);
     }
-    if (gData && Array.isArray(gData.points)) {
+    if (hasGData) {
         drawSeries(gData.points, "#38bdf8", 2.5);
     }
     if (showDerivativeInput.checked && hasCurrentData &&
         Array.isArray(currentData.derivativePoints)) {
         drawSeries(currentData.derivativePoints, "#38bdf8", 2, true);
+        ctx.save();
         ctx.setLineDash([8, 6]);
         ctx.strokeStyle = "#38bdf8";
         ctx.beginPath();
@@ -446,27 +529,58 @@ function drawGraph() {
         ctx.fillStyle = "#38bdf8";
         ctx.textAlign = "left";
         ctx.fillText("f'(x)", width - 104, 18);
+        ctx.restore();
+    }
+    if (showDerivativeInput.checked && hasGData &&
+        Array.isArray(gData.derivativePoints)) {
+        drawSeries(gData.derivativePoints, "#f472b6", 2, true);
+        ctx.save();
+        ctx.setLineDash([8, 6]);
+        ctx.strokeStyle = "#f472b6";
+        ctx.beginPath();
+        ctx.moveTo(width - 135, 36);
+        ctx.lineTo(width - 110, 36);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#f472b6";
+        ctx.textAlign = "left";
+        ctx.fillText("g'(x)", width - 104, 36);
+        ctx.restore();
     }
 
-    if (hoverPoint && hoverPoint.y !== null &&
+    if (hoverPoint && Number.isFinite(hoverPoint.x) &&
         hoverPoint.x >= view.xmin && hoverPoint.x <= view.xmax) {
         const px = toX(hoverPoint.x);
-        const py = toY(hoverPoint.y);
         ctx.save();
+        ctx.beginPath();
+        ctx.rect(plotBounds.left, plotBounds.top, plotWidth, plotHeight);
+        ctx.clip();
         ctx.strokeStyle = "rgba(226, 232, 240, 0.55)";
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 5]);
         ctx.beginPath();
         ctx.moveTo(px, plotBounds.top);
         ctx.lineTo(px, plotBounds.top + plotHeight);
-        ctx.moveTo(plotBounds.left, py);
-        ctx.lineTo(plotBounds.left + plotWidth, py);
+        const hoverValues = [];
+        if (showF && Number.isFinite(hoverPoint.fY)) {
+            hoverValues.push({ y: hoverPoint.fY, color: "#a3e635" });
+        }
+        if (showG && Number.isFinite(hoverPoint.gY)) {
+            hoverValues.push({ y: hoverPoint.gY, color: "#38bdf8" });
+        }
+        for (const point of hoverValues) {
+            const py = toY(point.y);
+            ctx.moveTo(plotBounds.left, py);
+            ctx.lineTo(plotBounds.left + plotWidth, py);
+        }
         ctx.stroke();
         ctx.setLineDash([]);
-        ctx.fillStyle = "#a3e635";
-        ctx.beginPath();
-        ctx.arc(px, py, 4, 0, Math.PI * 2);
-        ctx.fill();
+        for (const point of hoverValues) {
+            ctx.fillStyle = point.color;
+            ctx.beginPath();
+            ctx.arc(px, toY(point.y), 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
         ctx.restore();
     }
 
@@ -519,6 +633,7 @@ function requestHover(point) {
         return;
     }
     const x = view.xmin + ratio * (view.xmax - view.xmin);
+    const modeAtRequest = displayMode;
     hoverTimer = setTimeout(async () => {
         try {
             const fetchValue = expression => fetch(
@@ -527,24 +642,44 @@ function requestHover(point) {
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 return response.json();
             });
-            const requests = [fetchValue(exprInput.value.trim())];
-            const gExpression = gData ? gExprInput.value.trim() : "";
-            if (gExpression) requests.push(fetchValue(gExpression));
-            const [data, gValue] = await Promise.all(requests);
-            if (requestId !== hoverRequestId || drag || touchGesture) return;
-            hoverPoint = { x: data.xval, y: data.yval };
+            const requests = [];
+            const requestTypes = [];
+            const fExpression = exprInput.value.trim();
+            const gExpression = !gExpressionRow.hidden ? gExprInput.value.trim() : "";
+            if (modeAtRequest !== "g" && fExpression) {
+                requests.push(fetchValue(fExpression));
+                requestTypes.push("f");
+            }
+            if (modeAtRequest !== "f" && gExpression) {
+                requests.push(fetchValue(gExpression));
+                requestTypes.push("g");
+            }
+            if (!requests.length) return;
+            const results = await Promise.all(requests);
+            if (requestId !== hoverRequestId || modeAtRequest !== displayMode || drag || touchGesture) return;
+            const values = {};
+            requestTypes.forEach((type, index) => {
+                values[type] = results[index];
+            });
+            const xval = (values.f || values.g).xval;
+            hoverPoint = {
+                x: xval,
+                fY: values.f ? values.f.yval : null,
+                gY: values.g ? values.g.yval : null
+            };
             const wrapperRect = canvas.parentElement.getBoundingClientRect();
             const mouseX = point.clientX - wrapperRect.left;
             const mouseY = point.clientY - wrapperRect.top;
-            const fValue = data.yval === null
-                ? `(${formatNumber(data.xval, 6)}, Indéfini)`
-                : `(${formatNumber(data.xval, 6)}, ${formatNumber(data.yval, 6)})`;
-            const gValueText = gValue
-                ? `\ng(${formatNumber(gValue.xval, 6)}) = ${formatNumber(gValue.yval, 6)}`
-                : "";
-            tooltip.textContent = `${fValue}${gValueText}`;
+            const tooltipLines = [];
+            if (values.f) {
+                tooltipLines.push(`f(x): (${formatNumber(values.f.xval, 6)}, ${formatNumber(values.f.yval, 6)})`);
+            }
+            if (values.g) {
+                tooltipLines.push(`g(x): (${formatNumber(values.g.xval, 6)}, ${formatNumber(values.g.yval, 6)})`);
+            }
+            tooltip.textContent = tooltipLines.join("\n");
             tooltip.style.left = `${Math.max(4, Math.min(mouseX, wrapperRect.width - 210))}px`;
-            tooltip.style.top = `${Math.max(4, Math.min(mouseY, wrapperRect.height - (gValue ? 60 : 42)))}px`;
+            tooltip.style.top = `${Math.max(4, Math.min(mouseY, wrapperRect.height - (tooltipLines.length > 1 ? 60 : 42)))}px`;
             tooltip.style.display = "block";
             drawGraph();
         } catch (error) {
@@ -837,8 +972,8 @@ removeGButton.addEventListener("click", () => {
     addGButton.setAttribute("aria-expanded", "false");
     gExprInput.value = "";
     gData = null;
-    gResultItem.classList.add("is-hidden");
-    gResult.textContent = "";
+    displayMode = "both";
+    updateGResultPending();
     ++hoverRequestId;
     clearTimeout(hoverTimer);
     tooltip.style.display = "none";
@@ -860,6 +995,9 @@ guideDialog.addEventListener("keydown", event => {
 });
 guideDialog.addEventListener("close", () => guideOpenButton.focus());
 showDerivativeInput.addEventListener("change", drawGraph);
+graphModeButtons.forEach(button => {
+    button.addEventListener("click", () => setDisplayMode(button.dataset.mode));
+});
 keypadToggle.addEventListener("click", () => {
     const isExpanded = keypadToggle.getAttribute("aria-expanded") === "true";
     keypadToggle.setAttribute("aria-expanded", String(!isExpanded));
@@ -903,7 +1041,15 @@ document.querySelectorAll(".preset").forEach(button => {
         input.addEventListener(eventName, () => rememberExpressionSelection(input));
     });
 });
-gExprInput.addEventListener("input", updateGResultPending);
+gExprInput.addEventListener("input", () => {
+    gData = null;
+    if (!gExprInput.value.trim()) displayMode = "both";
+    updateGResultPending();
+    ++hoverRequestId;
+    clearTimeout(hoverTimer);
+    tooltip.style.display = "none";
+    drawGraph();
+});
 exprInput.addEventListener("keydown", event => {
     if (event.key === "Enter") fetchAndPlot();
 });
