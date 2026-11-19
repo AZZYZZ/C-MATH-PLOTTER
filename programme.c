@@ -5,6 +5,7 @@
 #include <math.h>
 #include <errno.h>
 #include <limits.h>
+#include <stdarg.h>
 
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
@@ -25,6 +26,7 @@ typedef int socket_t;
 #endif
 
 #define DEFAULT_PORT 8080
+#define RESPONSE_BUFFER_SIZE (2 * 1024 * 1024)
 #define PI_VAL 3.14159265358979323846
 #define E_VAL  2.71828182845904523536
 
@@ -54,7 +56,8 @@ double parse_primary(const char **p, double x) {
         (*p)++;
         double val = parse_expr(p, x);
         skip_spaces(p);
-        if (**p == ')') (*p)++;
+        if (**p != ')') return NAN;
+        (*p)++;
         return val;
     }
 
@@ -82,31 +85,33 @@ double parse_primary(const char **p, double x) {
     return NAN;
 }
 
+double parse_power(const char **p, double x);
+
 double parse_unary(const char **p, double x) {
     skip_spaces(p);
     if (**p == '-') { (*p)++; return -parse_unary(p, x); }
     if (**p == '+') { (*p)++; return parse_unary(p, x); }
-    return parse_primary(p, x);
+    return parse_power(p, x);
 }
 
 double parse_power(const char **p, double x) {
-    double base = parse_unary(p, x);
+    double base = parse_primary(p, x);
     skip_spaces(p);
     if (**p == '^') {
         (*p)++;
-        double exp_val = parse_power(p, x);
+        double exp_val = parse_unary(p, x);
         return pow(base, exp_val);
     }
     return base;
 }
 
 double parse_term(const char **p, double x) {
-    double val = parse_power(p, x);
+    double val = parse_unary(p, x);
     while (1) {
         skip_spaces(p);
-        if (**p == '*') { (*p)++; val *= parse_power(p, x); }
-        else if (**p == '/') { (*p)++; val /= parse_power(p, x); }
-        else if (starts_primary(p)) val *= parse_power(p, x);
+        if (**p == '*') { (*p)++; val *= parse_unary(p, x); }
+        else if (**p == '/') { (*p)++; val /= parse_unary(p, x); }
+        else if (starts_primary(p)) val *= parse_unary(p, x);
         else break;
     }
     return val;
@@ -125,7 +130,9 @@ double parse_expr(const char **p, double x) {
 
 double eval_function(const char *expr, double x) {
     const char *p = expr;
-    return parse_expr(&p, x);
+    double result = parse_expr(&p, x);
+    skip_spaces(&p);
+    return *p ? NAN : result;
 }
 
 double derivative_function(const char *expr, double x) {
@@ -136,6 +143,7 @@ double derivative_function(const char *expr, double x) {
 double integrate_function(const char *expr, double xmin, double xmax) {
     const int steps = 1000;
     double dx = (xmax - xmin) / steps;
+    if (!isfinite(dx) || dx == 0.0) return NAN;
     double sum = eval_function(expr, xmin) + eval_function(expr, xmax);
 
     if (!isfinite(sum)) return NAN;
@@ -148,37 +156,66 @@ double integrate_function(const char *expr, double xmin, double xmax) {
 }
 
 // --- 2. OUTILS URL & HTTP ---
-void url_decode(const char *src, char *dest, int max_len) {
-    int i = 0;
-    while (*src && i < max_len - 1) {
-        if (*src == '%' && isxdigit((unsigned char)src[1]) && isxdigit((unsigned char)src[2])) {
-            char hex[3] = { src[1], src[2], '\0' };
-            dest[i++] = (char)strtol(hex, NULL, 16);
-            src += 3;
-        } else if (*src == '+') {
-            dest[i++] = ' ';
-            src++;
+static int url_decode(const char *src, size_t src_len, char *dest, size_t max_len) {
+    if (max_len == 0) return -1;
+    size_t i = 0;
+    size_t j = 0;
+    while (j < src_len) {
+        unsigned char value;
+        if (src[j] == '%' && j + 2 < src_len &&
+            isxdigit((unsigned char)src[j + 1]) &&
+            isxdigit((unsigned char)src[j + 2])) {
+            char hex[3] = { src[j + 1], src[j + 2], '\0' };
+            value = (unsigned char)strtol(hex, NULL, 16);
+            j += 3;
+        } else if (src[j] == '+') {
+            value = ' ';
+            j++;
         } else {
-            dest[i++] = *src++;
+            value = (unsigned char)src[j++];
         }
+        if (value == '\0' || i + 1 >= max_len) return -1;
+        dest[i++] = (char)value;
     }
     dest[i] = '\0';
+    return 0;
 }
 
-void get_param(const char *query, const char *key, char *out, int max_len) {
+static int get_param(const char *query, const char *key, char *out, size_t max_len) {
+    if (max_len == 0) return -1;
     out[0] = '\0';
-    char search[64];
-    snprintf(search, sizeof(search), "%s=", key);
-    const char *pos = strstr(query, search);
-    if (!pos) return;
-    pos += strlen(search);
-    const char *end = strpbrk(pos, "& \r\n");
-    int len = end ? (int)(end - pos) : (int)strlen(pos);
-    char encoded[512];
-    if (len >= (int)sizeof(encoded)) len = sizeof(encoded) - 1;
-    strncpy(encoded, pos, len);
-    encoded[len] = '\0';
-    url_decode(encoded, out, max_len);
+    size_t key_len = strlen(key);
+    const char *pos = query;
+    while (*pos) {
+        while (*pos == '?' || *pos == '&') pos++;
+        if (!*pos || *pos == ' ' || *pos == '\r' || *pos == '\n') break;
+        const char *end = strpbrk(pos, "& \r\n");
+        if (!end) end = pos + strlen(pos);
+        const char *equals = memchr(pos, '=', (size_t)(end - pos));
+        if (equals && (size_t)(equals - pos) == key_len &&
+            memcmp(pos, key, key_len) == 0) {
+            size_t len = (size_t)(end - equals - 1);
+            return url_decode(equals + 1, len, out, max_len);
+        }
+        pos = *end ? end + 1 : end;
+    }
+    return 1;
+}
+
+static int parse_finite_number(const char *text, double fallback, double *value) {
+    if (!text || !*text) {
+        *value = fallback;
+        return 0;
+    }
+
+    errno = 0;
+    char *end = NULL;
+    double parsed = strtod(text, &end);
+    if (end == text || errno == ERANGE || !isfinite(parsed)) return -1;
+    while (*end && isspace((unsigned char)*end)) end++;
+    if (*end) return -1;
+    *value = parsed;
+    return 0;
 }
 
 static void close_socket(socket_t socket_fd) {
@@ -245,6 +282,80 @@ static int send_text_response(socket_t client, const char *status, const char *b
     if (header_length < 0 || (size_t)header_length >= sizeof(header)) return -1;
     if (send_all(client, header, (size_t)header_length) != 0) return -1;
     return send_all(client, body, strlen(body));
+}
+
+static int append_format(char *buffer, size_t capacity, size_t *offset,
+                         const char *format, ...) {
+    if (*offset >= capacity) return -1;
+    va_list args;
+    va_start(args, format);
+    int written = vsnprintf(buffer + *offset, capacity - *offset, format, args);
+    va_end(args);
+    if (written < 0 || (size_t)written >= capacity - *offset) return -1;
+    *offset += (size_t)written;
+    return 0;
+}
+
+static int build_plot_response(char *buffer, size_t capacity, size_t *response_length,
+                               const char *expr, double xmin, double xmax, double xval,
+                               int value_only) {
+    size_t offset = 0;
+    double yval = eval_function(expr, xval);
+    if (append_format(buffer, capacity, &offset,
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: application/json\r\n"
+        "Access-Control-Allow-Origin: *\r\n"
+        "Connection: close\r\n\r\n"
+        "{\"xval\":%.10g,\"yval\":", xval) != 0) return -1;
+
+    if (append_format(buffer, capacity, &offset, isfinite(yval) ? "%.6f" : "null", yval) != 0) return -1;
+    if (value_only) {
+        if (append_format(buffer, capacity, &offset, "}") != 0) return -1;
+        *response_length = offset;
+        return 0;
+    }
+
+    double derivative = derivative_function(expr, xval);
+    double integral = integrate_function(expr, xmin, xmax);
+    if (append_format(buffer, capacity, &offset, ",\"derivative\":") != 0 ||
+        append_format(buffer, capacity, &offset, isfinite(derivative) ? "%.6f" : "null", derivative) != 0 ||
+        append_format(buffer, capacity, &offset, ",\"integral\":") != 0 ||
+        append_format(buffer, capacity, &offset, isfinite(integral) ? "%.6f" : "null", integral) != 0 ||
+        append_format(buffer, capacity, &offset, ",\"points\":[") != 0) return -1;
+
+    const int steps = 500;
+    const double dx = (xmax - xmin) / steps;
+    for (int i = 0; i <= steps; i++) {
+        double cx = xmin + i * dx;
+        double cy = eval_function(expr, cx);
+        if ((i > 0 && append_format(buffer, capacity, &offset, ",") != 0) ||
+            (isfinite(cx)
+                ? (isfinite(cy)
+                    ? append_format(buffer, capacity, &offset,
+                        "{\"x\":%.10g,\"y\":%.10g}", cx, cy)
+                    : append_format(buffer, capacity, &offset,
+                        "{\"x\":%.10g,\"y\":null}", cx))
+                : append_format(buffer, capacity, &offset,
+                    "{\"x\":null,\"y\":null}")) != 0) return -1;
+    }
+    if (append_format(buffer, capacity, &offset, "],\"derivativePoints\":[") != 0) return -1;
+
+    for (int i = 0; i <= steps; i++) {
+        double cx = xmin + i * dx;
+        double cy = derivative_function(expr, cx);
+        if ((i > 0 && append_format(buffer, capacity, &offset, ",") != 0) ||
+            (isfinite(cx)
+                ? (isfinite(cy)
+                    ? append_format(buffer, capacity, &offset,
+                        "{\"x\":%.10g,\"y\":%.10g}", cx, cy)
+                    : append_format(buffer, capacity, &offset,
+                        "{\"x\":%.10g,\"y\":null}", cx))
+                : append_format(buffer, capacity, &offset,
+                    "{\"x\":null,\"y\":null}")) != 0) return -1;
+    }
+    if (append_format(buffer, capacity, &offset, "]}") != 0) return -1;
+    *response_length = offset;
+    return 0;
 }
 
 static int serve_static_file(socket_t client, const char *filename, const char *content_type,
@@ -358,7 +469,7 @@ int main(void) {
     }
 
     printf("C-Math Plotter listening on http://0.0.0.0:%d\n", port);
-    char *response = (char *)malloc(131072);
+    char *response = (char *)malloc(RESPONSE_BUFFER_SIZE);
     if (!response) {
         fprintf(stderr, "Unable to allocate response buffer.\n");
         close_socket(server_fd);
@@ -370,7 +481,17 @@ int main(void) {
 
     while (1) {
         socket_t client = accept(server_fd, NULL, NULL);
-        if (client == INVALID_SOCKET) continue;
+        if (client == INVALID_SOCKET) {
+#ifdef _WIN32
+            int accept_error = WSAGetLastError();
+            if (accept_error == WSAEINTR || accept_error == WSAECONNRESET ||
+                accept_error == WSAECONNABORTED) continue;
+#else
+            if (errno == EINTR || errno == ECONNABORTED) continue;
+#endif
+            fprintf(stderr, "Unable to accept client connection.\n");
+            break;
+        }
 
         char req[4096] = {0};
 #ifdef _WIN32
@@ -391,7 +512,10 @@ int main(void) {
             continue;
         }
         char *query_start = strchr(request_path, '?');
-        if (query_start) *query_start = '\0';
+        if (query_start) {
+            *query_start = '\0';
+            query_start++;
+        }
 
         if (strcmp(method, "GET") != 0) {
             send_text_response(client, "405 Method Not Allowed", "Method Not Allowed\n");
@@ -431,72 +555,29 @@ int main(void) {
         }
 
         char expr[256], xmin_s[32], xmax_s[32], xval_s[32], value_only_s[8];
-        get_param(req, "expr", expr, sizeof(expr));
-        get_param(req, "xmin", xmin_s, sizeof(xmin_s));
-        get_param(req, "xmax", xmax_s, sizeof(xmax_s));
-        get_param(req, "xval", xval_s, sizeof(xval_s));
-        get_param(req, "valueOnly", value_only_s, sizeof(value_only_s));
-
-        double xmin = strlen(xmin_s) ? atof(xmin_s) : -10.0;
-        double xmax = strlen(xmax_s) ? atof(xmax_s) : 10.0;
-        double xval = strlen(xval_s) ? atof(xval_s) : 0.0;
-        if (xmin >= xmax) { xmin = -10.0; xmax = 10.0; }
-
-        double yval = eval_function(expr, xval);
-        int offset = snprintf(response, 131072,
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Type: application/json\r\n"
-            "Access-Control-Allow-Origin: *\r\n"
-            "Connection: close\r\n\r\n"
-            "{\"xval\":%.10g,\"yval\":", xval);
-
-        if (isnan(yval) || isinf(yval)) offset += snprintf(response + offset, 131072 - offset, "null");
-        else offset += snprintf(response + offset, 131072 - offset, "%.6f", yval);
-
-        if (strcmp(value_only_s, "1") == 0) {
-            offset += snprintf(response + offset, 131072 - offset, "}");
-            send_all(client, response, (size_t)offset);
+        const char *query = query_start ? query_start : "";
+        double xmin, xmax, xval;
+        if (get_param(query, "expr", expr, sizeof(expr)) < 0 ||
+            get_param(query, "xmin", xmin_s, sizeof(xmin_s)) < 0 ||
+            get_param(query, "xmax", xmax_s, sizeof(xmax_s)) < 0 ||
+            get_param(query, "xval", xval_s, sizeof(xval_s)) < 0 ||
+            get_param(query, "valueOnly", value_only_s, sizeof(value_only_s)) < 0 ||
+            parse_finite_number(xmin_s, -10.0, &xmin) != 0 ||
+            parse_finite_number(xmax_s, 10.0, &xmax) != 0 ||
+            parse_finite_number(xval_s, 0.0, &xval) != 0 ||
+            xmin >= xmax || !isfinite(xmax - xmin)) {
+            send_text_response(client, "400 Bad Request", "Invalid numeric parameters\n");
             close_socket(client);
             continue;
         }
 
-        double derivative = derivative_function(expr, xval);
-        double integral = integrate_function(expr, xmin, xmax);
-        offset += snprintf(response + offset, 131072 - offset, ",\"derivative\":");
-        if (!isfinite(derivative)) offset += snprintf(response + offset, 131072 - offset, "null");
-        else offset += snprintf(response + offset, 131072 - offset, "%.6f", derivative);
-        offset += snprintf(response + offset, 131072 - offset, ",\"integral\":");
-        if (!isfinite(integral)) offset += snprintf(response + offset, 131072 - offset, "null");
-        else offset += snprintf(response + offset, 131072 - offset, "%.6f", integral);
-
-        offset += snprintf(response + offset, 131072 - offset, ",\"points\":[");
-
-        int steps = 500;
-        double dx = (xmax - xmin) / steps;
-        for (int i = 0; i <= steps; i++) {
-            double cx = xmin + i * dx;
-            double cy = eval_function(expr, cx);
-            if (i > 0) offset += snprintf(response + offset, 131072 - offset, ",");
-            if (isnan(cy) || isinf(cy)) {
-                offset += snprintf(response + offset, 131072 - offset, "{\"x\":%.4f,\"y\":null}", cx);
-            } else {
-                offset += snprintf(response + offset, 131072 - offset, "{\"x\":%.4f,\"y\":%.4f}", cx, cy);
-            }
+        size_t response_length;
+        if (build_plot_response(response, RESPONSE_BUFFER_SIZE, &response_length,
+                expr, xmin, xmax, xval, strcmp(value_only_s, "1") == 0) != 0) {
+            send_text_response(client, "500 Internal Server Error", "Response too large\n");
+        } else {
+            (void)send_all(client, response, response_length);
         }
-        offset += snprintf(response + offset, 131072 - offset, "],\"derivativePoints\":[");
-        for (int i = 0; i <= steps; i++) {
-            double cx = xmin + i * dx;
-            double cy = derivative_function(expr, cx);
-            if (i > 0) offset += snprintf(response + offset, 131072 - offset, ",");
-            if (!isfinite(cy)) {
-                offset += snprintf(response + offset, 131072 - offset, "{\"x\":%.4f,\"y\":null}", cx);
-            } else {
-                offset += snprintf(response + offset, 131072 - offset, "{\"x\":%.4f,\"y\":%.4f}", cx, cy);
-            }
-        }
-        offset += snprintf(response + offset, 131072 - offset, "]}");
-
-        send_all(client, response, (size_t)offset);
         close_socket(client);
     }
 

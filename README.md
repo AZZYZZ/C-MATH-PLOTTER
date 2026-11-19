@@ -25,7 +25,8 @@ C-Math Plotter combines a hand-written recursive-descent math parser in C with a
 - Mathematical expression parser with implicit multiplication, such as `2x`, `3sin(x)`, and `(x+1)(x-1)`.
 - Numerical evaluation of `f(x)` and its derivative `f'(x)`.
 - Definite integral computed with composite Simpson's rule.
-- Interactive HiDPI Canvas with zoom, drag-to-pan, curve hover coordinates, and a dashed derivative curve.
+- Interactive HiDPI Canvas with zoom, mouse/touch panning, pinch-to-zoom, hover coordinates, a dashed derivative curve, and shaded integral bounds.
+- Optional second function `g(x)` plotted in cyan with its value shown on hover.
 - Collapsible on-screen math keyboard with cursor-aware insertion.
 - PNG graph export, responsive dark dashboard, and backend connection status.
 - Serves the frontend and `/plot` JSON API from the same server.
