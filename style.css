@@ -970,8 +970,9 @@ button {
     white-space: nowrap;
 }
 
-.result-item:nth-child(2) strong {
-    color: var(--cyan);
+.result-bar .result-item:not(.g-result) .result-label,
+.result-bar .result-item:not(.g-result) strong {
+    color: var(--lime);
 }
 
 .g-result .result-label,
