@@ -247,7 +247,8 @@ static int send_text_response(socket_t client, const char *status, const char *b
     return send_all(client, body, strlen(body));
 }
 
-static int serve_static_file(socket_t client, const char *filename, const char *content_type) {
+static int serve_static_file(socket_t client, const char *filename, const char *content_type,
+                             const char *cache_control) {
     FILE *file = fopen(filename, "rb");
     if (!file) return send_text_response(client, "404 Not Found", "Not Found\n");
     if (fseek(file, 0, SEEK_END) != 0) {
@@ -266,9 +267,10 @@ static int serve_static_file(socket_t client, const char *filename, const char *
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: %s\r\n"
         "Content-Length: %ld\r\n"
+        "Cache-Control: %s\r\n"
         "X-Content-Type-Options: nosniff\r\n"
         "Connection: close\r\n\r\n",
-        content_type, file_size);
+        content_type, file_size, cache_control);
     if (header_length < 0 || (size_t)header_length >= sizeof(header) ||
         send_all(client, header, (size_t)header_length) != 0) {
         fclose(file);
@@ -414,7 +416,10 @@ int main(void) {
             static_content_type = "image/jpeg";
         }
         if (static_filename) {
-            (void)serve_static_file(client, static_filename, static_content_type);
+            const char *cache_control = strcmp(static_filename, "index.html") == 0
+                ? "no-cache"
+                : "public, max-age=604800";
+            (void)serve_static_file(client, static_filename, static_content_type, cache_control);
             close_socket(client);
             continue;
         }

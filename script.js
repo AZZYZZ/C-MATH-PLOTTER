@@ -31,6 +31,8 @@ let zoomTimer = null;
 let drag = null;
 let savedSelection = { start: exprInput.value.length, end: exprInput.value.length };
 let pixelRatio = 1;
+const canvasSize = { width: 0, height: 0 };
+let resizeScheduled = false;
 
 function formatNumber(value, digits = 5) {
     return value === null || !Number.isFinite(Number(value))
@@ -181,8 +183,8 @@ function drawMinorGrid(min, max, majorStep, toPixel, horizontal, plotWidth, plot
 }
 
 function drawSeries(points, color, lineWidth, dashed = false, glow = false) {
-    const width = canvas.clientWidth - plotBounds.left - plotBounds.right;
-    const height = canvas.clientHeight - plotBounds.top - plotBounds.bottom;
+    const width = canvasSize.width - plotBounds.left - plotBounds.right;
+    const height = canvasSize.height - plotBounds.top - plotBounds.bottom;
     const xmin = view.xmin;
     const xmax = view.xmax;
     const ymin = drawGraph.ymin;
@@ -224,8 +226,8 @@ function drawSeries(points, color, lineWidth, dashed = false, glow = false) {
 }
 
 function drawGraph() {
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
+    const width = canvasSize.width;
+    const height = canvasSize.height;
     if (!width || !height) return;
     ctx.clearRect(0, 0, width, height);
     if (!currentData || !currentData.points) return;
@@ -353,17 +355,24 @@ function drawGraph() {
 }
 
 function resizeCanvas() {
-    const rect = canvas.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    pixelRatio = Math.max(1, window.devicePixelRatio || 1);
-    const backingWidth = Math.round(rect.width * pixelRatio);
-    const backingHeight = Math.round(rect.height * pixelRatio);
-    if (canvas.width !== backingWidth || canvas.height !== backingHeight) {
-        canvas.width = backingWidth;
-        canvas.height = backingHeight;
-    }
-    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-    drawGraph();
+    if (resizeScheduled) return;
+    resizeScheduled = true;
+    window.requestAnimationFrame(() => {
+        resizeScheduled = false;
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        canvasSize.width = rect.width;
+        canvasSize.height = rect.height;
+        pixelRatio = Math.max(1, window.devicePixelRatio || 1);
+        const backingWidth = Math.round(rect.width * pixelRatio);
+        const backingHeight = Math.round(rect.height * pixelRatio);
+        if (canvas.width !== backingWidth || canvas.height !== backingHeight) {
+            canvas.width = backingWidth;
+            canvas.height = backingHeight;
+        }
+        ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        drawGraph();
+    });
 }
 
 function canvasPoint(event) {
