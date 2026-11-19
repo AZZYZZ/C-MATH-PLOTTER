@@ -748,6 +748,11 @@ button {
     cursor: pointer;
 }
 
+.derivative-toggle[hidden],
+#gDerivativeToggle.is-hidden {
+    display: none;
+}
+
 .toggle-copy {
     display: flex;
     flex-direction: column;
@@ -755,7 +760,7 @@ button {
 }
 
 .toggle-title {
-    color: #d8e0e9;
+    color: var(--text);
     font-size: 0.79rem;
     font-weight: 600;
 }
@@ -793,19 +798,34 @@ button {
     transition: transform 160ms ease, background 160ms ease;
 }
 
-.derivative-toggle input:checked + .switch {
-    border-color: rgba(56, 189, 248, 0.5);
-    background: rgba(56, 189, 248, 0.2);
+#showDerivative:checked + .switch {
+    border-color: rgba(120, 53, 230, 0.58);
+    background: rgba(120, 53, 230, 0.2);
 }
 
-.derivative-toggle input:checked + .switch::after {
+#showDerivative:checked + .switch::after {
     transform: translateX(15px);
-    background: var(--cyan);
+    background: #7835e6;
 }
 
-.derivative-toggle input:focus-visible + .switch {
-    outline: 2px solid var(--cyan);
+#showDerivative:focus-visible + .switch {
+    outline: 2px solid #7835e6;
     outline-offset: 3px;
+}
+
+#showGDerivative:focus-visible + .switch {
+    outline: 2px solid #f472b6;
+    outline-offset: 3px;
+}
+
+#showGDerivative:checked + .switch {
+    border-color: rgba(244, 114, 182, 0.58);
+    background: rgba(244, 114, 182, 0.2);
+}
+
+#showGDerivative:checked + .switch::after {
+    transform: translateX(15px);
+    background: #f472b6;
 }
 
 .presets {
@@ -878,7 +898,7 @@ button {
     border: 1px solid transparent;
     border-radius: 7px;
     background: transparent;
-    color: #9ba8b8;
+    color: #e8edf4;
     cursor: pointer;
     font-size: 0.74rem;
     font-weight: 650;
@@ -891,13 +911,13 @@ button {
 
 .graph-mode-button.is-active:not([data-mode="g"]) {
     background: rgba(163, 230, 53, 0.14);
-    color: var(--lime);
+    color: #e8edf4;
     box-shadow: inset 0 0 0 1px rgba(163, 230, 53, 0.38);
 }
 
 .graph-mode-button.is-active[data-mode="g"] {
     background: rgba(56, 189, 248, 0.14);
-    color: var(--cyan);
+    color: #e8edf4;
     box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.4);
 }
 
@@ -990,6 +1010,53 @@ button {
     border: 1px solid rgba(148, 163, 184, 0.12);
     border-radius: 12px;
     background: #0b1016;
+}
+
+.canvas-zoom-controls {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.canvas-zoom-controls button {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: rgba(17, 23, 31, 0.85);
+    color: #e8edf4;
+    cursor: pointer;
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    touch-action: manipulation;
+    transition: color 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.canvas-zoom-controls button:hover,
+.canvas-zoom-controls button:focus-visible {
+    border-color: var(--lime);
+    background: rgba(163, 230, 53, 0.1);
+    color: var(--lime);
+    box-shadow: 0 0 14px rgba(163, 230, 53, 0.14);
+}
+
+.canvas-zoom-controls button:focus-visible {
+    outline: 2px solid var(--lime);
+    outline-offset: 2px;
+}
+
+.canvas-zoom-controls button:active {
+    background: rgba(163, 230, 53, 0.17);
 }
 
 #graph {
@@ -1092,9 +1159,9 @@ button {
 }
 
 .derivative-line {
-    border-color: var(--cyan);
+    border-color: #7835e6;
     border-top-style: dashed;
-    box-shadow: 0 0 7px rgba(56, 189, 248, 0.3);
+    box-shadow: 0 0 7px rgba(120, 53, 230, 0.38);
 }
 
 .derivative-legend.is-hidden {
@@ -1515,6 +1582,11 @@ a:focus-visible {
     .canvas-wrapper,
     #graph {
         width: 100%;
+    }
+
+    .canvas-zoom-controls button {
+        width: 44px;
+        height: 44px;
     }
 
     #graph {

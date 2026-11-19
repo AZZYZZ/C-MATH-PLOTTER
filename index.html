@@ -22,7 +22,7 @@
     <link rel="icon" type="image/jpeg" href="/favicon.jpeg?v=3">
     <link rel="shortcut icon" type="image/jpeg" href="/favicon.jpeg?v=3">
     <link rel="apple-touch-icon" href="/favicon.jpeg?v=3">
-    <link rel="stylesheet" href="style.css?v=6">
+    <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
     <div class="app">
@@ -205,9 +205,17 @@
                 <label class="derivative-toggle" for="showDerivative">
                     <span class="toggle-copy">
                         <span class="toggle-title">Afficher la dérivée</span>
-                        <span class="toggle-subtitle">Tracer f'(x) en cyan</span>
+                        <span class="toggle-subtitle">Tracer f'(x) en violet</span>
                     </span>
                     <input type="checkbox" id="showDerivative">
+                    <span class="switch" aria-hidden="true"></span>
+                </label>
+                <label class="derivative-toggle" id="gDerivativeToggle" for="showGDerivative" hidden>
+                    <span class="toggle-copy">
+                        <span class="toggle-title">Afficher la dérivée de g</span>
+                        <span class="toggle-subtitle">Tracer g'(x) en pointillés</span>
+                    </span>
+                    <input type="checkbox" id="showGDerivative">
                     <span class="switch" aria-hidden="true"></span>
                 </label>
 
@@ -267,6 +275,10 @@
 
                 <div class="canvas-wrapper">
                     <canvas id="graph" width="900" height="480" aria-label="Graphe interactif de la fonction"></canvas>
+                    <div class="canvas-zoom-controls" aria-label="Contrôles du zoom">
+                        <button id="zoomInBtn" type="button" aria-label="Zoom avant" title="Zoom avant">+</button>
+                        <button id="zoomOutBtn" type="button" aria-label="Zoom arrière" title="Zoom arrière">−</button>
+                    </div>
                     <div class="graph-tooltip" id="graphTooltip" role="status" aria-live="polite"></div>
                     <div class="canvas-loading" id="canvasLoading" aria-live="polite">
                         <span class="loading-spinner" aria-hidden="true"></span>
@@ -294,6 +306,6 @@
             <a class="footer-email" href="mailto:c.math.plotter@gmail.com">c.math.plotter@gmail.com</a>
         </footer>
     </div>
-    <script src="script.js?v=5" defer></script>
+    <script src="script.js?v=9" defer></script>
 </body>
 </html>

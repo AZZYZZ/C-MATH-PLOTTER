@@ -6,6 +6,8 @@ const xminInput = document.getElementById("xmin");
 const xmaxInput = document.getElementById("xmax");
 const xvalInput = document.getElementById("xval");
 const showDerivativeInput = document.getElementById("showDerivative");
+const showGDerivativeInput = document.getElementById("showGDerivative");
+const gDerivativeToggle = document.getElementById("gDerivativeToggle");
 const tooltip = document.getElementById("graphTooltip");
 const fResult = document.getElementById("fResult");
 const derivativeResult = document.getElementById("derivativeResult");
@@ -28,6 +30,8 @@ const fLegend = document.querySelector(".f-legend");
 const fDerivativeLegend = document.querySelector(".f-derivative-legend");
 const gLegend = document.querySelector(".g-legend");
 const gDerivativeLegend = document.querySelector(".g-derivative-legend");
+const zoomInButton = document.getElementById("zoomInBtn");
+const zoomOutButton = document.getElementById("zoomOutBtn");
 const guideDialog = document.getElementById("guideDialog");
 const guideOpenButton = document.getElementById("guideOpenButton");
 const guideCloseButton = document.getElementById("guideCloseButton");
@@ -112,6 +116,18 @@ function setView(xmin, xmax) {
     ++hoverRequestId;
     clearTimeout(hoverTimer);
     tooltip.style.display = "none";
+}
+
+function zoomByFactor(factor) {
+    const oldRange = view.xmax - view.xmin;
+    if (!Number.isFinite(oldRange) || oldRange <= 0 ||
+        !Number.isFinite(factor) || factor <= 0) return;
+    const center = view.xmin + oldRange / 2;
+    const newRange = Math.max(1e-6, Math.min(1e6, oldRange * factor));
+    setView(center - newRange / 2, center + newRange / 2);
+    drawGraph();
+    clearTimeout(zoomTimer);
+    zoomTimer = setTimeout(fetchAndPlot, 120);
 }
 
 function getApiBaseUrl() {
@@ -391,16 +407,18 @@ function drawGraph() {
     const showG = displayMode !== "f";
     const hasCurrentData = showF && currentData && Array.isArray(currentData.points);
     const hasGData = showG && gData && Array.isArray(gData.points);
+    const hasFDerivative = showDerivativeInput.checked && hasCurrentData &&
+        Array.isArray(currentData.derivativePoints);
+    const hasGDerivative = showGDerivativeInput.checked && hasGData &&
+        Array.isArray(gData.derivativePoints);
     const values = hasCurrentData ? getValidYValues(currentData.points) : [];
     if (hasGData) {
         values.push(...getValidYValues(gData.points));
     }
-    if (showDerivativeInput.checked && hasCurrentData &&
-        Array.isArray(currentData.derivativePoints)) {
+    if (hasFDerivative) {
         values.push(...getValidYValues(currentData.derivativePoints));
     }
-    if (showDerivativeInput.checked && hasGData &&
-        Array.isArray(gData.derivativePoints)) {
+    if (hasGDerivative) {
         values.push(...getValidYValues(gData.derivativePoints));
     }
     fLegend.classList.toggle("is-mode-hidden", !showF);
@@ -408,7 +426,7 @@ function drawGraph() {
     fDerivativeLegend.classList.toggle("is-hidden", !showDerivativeInput.checked);
     gLegend.classList.toggle("is-hidden", !hasGData);
     gDerivativeLegend.classList.toggle("is-mode-hidden", !hasGData);
-    gDerivativeLegend.classList.toggle("is-hidden", !showDerivativeInput.checked);
+    gDerivativeLegend.classList.toggle("is-hidden", !showGDerivativeInput.checked);
     let ymin = values.length ? Math.min(...values) : -10;
     let ymax = values.length ? Math.max(...values) : 10;
     if (ymax - ymin < 1e-9) {
@@ -515,36 +533,35 @@ function drawGraph() {
     if (hasGData) {
         drawSeries(gData.points, "#38bdf8", 2.5);
     }
-    if (showDerivativeInput.checked && hasCurrentData &&
-        Array.isArray(currentData.derivativePoints)) {
-        drawSeries(currentData.derivativePoints, "#38bdf8", 2, true);
+    if (hasFDerivative) {
+        drawSeries(currentData.derivativePoints, "#7835e6", 2, true);
         ctx.save();
         ctx.setLineDash([8, 6]);
-        ctx.strokeStyle = "#38bdf8";
+        ctx.strokeStyle = "#7835e6";
         ctx.beginPath();
         ctx.moveTo(width - 135, 18);
         ctx.lineTo(width - 110, 18);
         ctx.stroke();
         ctx.setLineDash([]);
-        ctx.fillStyle = "#38bdf8";
+        ctx.fillStyle = "#7835e6";
         ctx.textAlign = "left";
         ctx.fillText("f'(x)", width - 104, 18);
         ctx.restore();
     }
-    if (showDerivativeInput.checked && hasGData &&
-        Array.isArray(gData.derivativePoints)) {
+    if (hasGDerivative) {
+        const legendY = hasFDerivative ? 36 : 18;
         drawSeries(gData.derivativePoints, "#f472b6", 2, true);
         ctx.save();
         ctx.setLineDash([8, 6]);
         ctx.strokeStyle = "#f472b6";
         ctx.beginPath();
-        ctx.moveTo(width - 135, 36);
-        ctx.lineTo(width - 110, 36);
+        ctx.moveTo(width - 135, legendY);
+        ctx.lineTo(width - 110, legendY);
         ctx.stroke();
         ctx.setLineDash([]);
         ctx.fillStyle = "#f472b6";
         ctx.textAlign = "left";
-        ctx.fillText("g'(x)", width - 104, 36);
+        ctx.fillText("g'(x)", width - 104, legendY);
         ctx.restore();
     }
 
@@ -955,9 +972,12 @@ document.getElementById("exportBtn").addEventListener("click", () => {
     link.href = canvas.toDataURL("image/png");
     link.click();
 });
+zoomInButton.addEventListener("click", () => zoomByFactor(0.75));
+zoomOutButton.addEventListener("click", () => zoomByFactor(1.33));
 addGButton.addEventListener("click", () => {
     gExpressionRow.style.removeProperty("display");
     gExpressionRow.hidden = false;
+    gDerivativeToggle.hidden = false;
     addGButton.style.removeProperty("display");
     addGButton.hidden = true;
     addGButton.setAttribute("aria-expanded", "true");
@@ -967,6 +987,8 @@ addGButton.addEventListener("click", () => {
 removeGButton.addEventListener("click", () => {
     gExpressionRow.style.removeProperty("display");
     gExpressionRow.hidden = true;
+    gDerivativeToggle.hidden = true;
+    showGDerivativeInput.checked = false;
     addGButton.style.removeProperty("display");
     addGButton.hidden = false;
     addGButton.setAttribute("aria-expanded", "false");
@@ -995,6 +1017,7 @@ guideDialog.addEventListener("keydown", event => {
 });
 guideDialog.addEventListener("close", () => guideOpenButton.focus());
 showDerivativeInput.addEventListener("change", drawGraph);
+showGDerivativeInput.addEventListener("change", drawGraph);
 graphModeButtons.forEach(button => {
     button.addEventListener("click", () => setDisplayMode(button.dataset.mode));
 });
