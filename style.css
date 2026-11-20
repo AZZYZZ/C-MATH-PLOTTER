@@ -805,34 +805,37 @@ button {
 }
 
 .keypad-toggle {
-    min-width: 89px;
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
     min-height: 42px;
+    flex: 0 0 42px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-1);
-    padding: 0 12px;
+    padding: 0;
     border-radius: var(--radius-control);
     background: #171f29;
     color: #c4cfdb;
-    font-size: 0.76rem;
     font-weight: 600;
 }
 
-.keypad-toggle:hover,
+.keypad-toggle:hover {
+    border-color: var(--line-strong);
+    background: #171f29;
+    color: #c4cfdb;
+}
+
 .keypad-toggle[aria-expanded="true"] {
     border-color: rgba(163, 230, 53, 0.42);
     background: rgba(163, 230, 53, 0.09);
     color: var(--lime);
 }
 
-.toggle-chevron {
-    color: var(--muted);
-    transition: transform 160ms ease;
-}
-
-.keypad-toggle[aria-expanded="true"] .toggle-chevron {
-    transform: rotate(180deg);
+.keypad-icon {
+    width: 19px;
+    height: 19px;
+    display: block;
 }
 
 .math-keyboard {
@@ -2195,10 +2198,13 @@ a:focus-visible {
     }
 
     .keypad-toggle {
-        min-width: 0;
-        flex: 0 0 auto;
-        gap: 5px;
-        padding: 7px 10px;
+        width: 42px;
+        min-width: 42px;
+        height: 42px;
+        min-height: 42px;
+        flex: 0 0 42px;
+        gap: 0;
+        padding: 0;
     }
 
     .graph-actions {
@@ -3238,4 +3244,20 @@ a:focus-visible {
     .result-bar .result-item strong {
         max-width: 44vw;
     }
+}
+
+.expression-input:focus-within {
+    border-color: rgba(255, 255, 255, 0.22);
+    outline: none;
+    box-shadow: none;
+}
+
+#expr:focus,
+#expr:focus-visible,
+#gExpr:focus,
+#gExpr:focus-visible,
+#sequenceExpr:focus,
+#sequenceExpr:focus-visible {
+    outline: none;
+    box-shadow: none;
 }
