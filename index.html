@@ -22,7 +22,7 @@
     <link rel="icon" type="image/jpeg" href="/favicon.jpeg?v=3">
     <link rel="shortcut icon" type="image/jpeg" href="/favicon.jpeg?v=3">
     <link rel="apple-touch-icon" href="/favicon.jpeg?v=3">
-    <link rel="stylesheet" href="style.css?v=11">
+    <link rel="stylesheet" href="style.css?v=20">
 </head>
 <body>
     <div class="app">
@@ -74,7 +74,7 @@
                     <section class="guide-section">
                         <h3>Variables & constants</h3>
                         <div class="guide-chips">
-                            <code>x</code><code>pi</code><code>e</code>
+                            <code>x</code><code>n</code><code>u</code><code>pi</code><code>e</code>
                         </div>
                     </section>
                     <section class="guide-section guide-examples">
@@ -93,184 +93,495 @@
             </div>
         </dialog>
 
+        <dialog class="guide-dialog values-dialog" id="valuesDialog" aria-labelledby="valuesTitle">
+            <div class="guide-card values-card">
+                <div class="guide-heading">
+                    <div>
+                        <span class="eyebrow">ANALYSE NUMÉRIQUE</span>
+                        <h2 id="valuesTitle">Tableau de valeurs</h2>
+                    </div>
+                    <button class="guide-close" id="valuesCloseButton" type="button"
+                            aria-label="Fermer le tableau">×</button>
+                </div>
+                <div class="values-controls">
+                    <div class="input-group">
+                        <label for="valuesStart">Début</label>
+                        <input type="number" id="valuesStart" step="any" value="-10">
+                    </div>
+                    <div class="input-group">
+                        <label for="valuesEnd">Fin</label>
+                        <input type="number" id="valuesEnd" step="any" value="10">
+                    </div>
+                    <div class="input-group">
+                        <label for="valuesStep">Pas (Δx)</label>
+                        <input type="number" id="valuesStep" min="0.01" step="any" value="1">
+                    </div>
+                    <button class="secondary-btn values-generate-button" id="valuesGenerateButton"
+                            type="button">Générer</button>
+                </div>
+                <div class="values-table-wrapper">
+                    <table class="values-table" id="valuesTable">
+                        <thead id="valuesTableHead"></thead>
+                        <tbody id="valuesTableBody"></tbody>
+                    </table>
+                </div>
+                <div class="values-dialog-footer">
+                    <p class="values-status" id="valuesStatus" role="status" aria-live="polite"></p>
+                    <button class="secondary-btn" id="copyValuesButton" type="button" disabled>
+                        Copier
+                    </button>
+                </div>
+            </div>
+        </dialog>
+
         <main class="dashboard">
             <aside class="controls-panel">
-                <div class="panel-heading">
-                    <div>
-                        <span class="eyebrow">ESPACE DE TRAVAIL</span>
-                        <h2>Votre fonction</h2>
+                <div class="workspace-mode-switch" id="workspaceModeSwitch" role="group"
+                     aria-label="Mode de calcul">
+                    <button class="workspace-mode-button is-active" id="functionsModeButton"
+                            type="button" data-workspace-mode="function" aria-pressed="true">
+                        Fonctions f(x)
+                    </button>
+                    <button class="workspace-mode-button" id="sequenceModeButton"
+                            type="button" data-workspace-mode="sequence" aria-pressed="false">
+                        Suites (uₙ)
+                    </button>
+                </div>
+                <div class="function-mode-content" id="functionModeContent">
+                    <div class="panel-heading compact-panel-heading">
+                        <h2>Fonction f(x)</h2>
                     </div>
-                    <span class="panel-index">01</span>
+                    <section class="expression-section" aria-label="Expression mathématique">
+                        <label class="field-label" for="expr">Expression <span>f(x)</span></label>
+                        <div class="expression-input-row">
+                            <div class="expression-input">
+                                <span class="expression-prefix">f(x) =</span>
+                                <input type="text" id="expr" placeholder="ex: sin(x) * x"
+                                       autocomplete="off" spellcheck="false" maxlength="255">
+                            </div>
+                            <button class="keypad-toggle" id="keypadToggle" type="button"
+                                    aria-expanded="false" aria-controls="mathKeyboard">
+                                <span aria-hidden="true">⌨</span>
+                                <span>Clavier</span>
+                                <span class="toggle-chevron" aria-hidden="true">⌄</span>
+                            </button>
+                        </div>
+                        <span id="functionKeyboardSlot" hidden></span>
+                        <button class="add-function-button" id="addGButton" type="button"
+                                aria-expanded="false" aria-controls="gExpressionRow">
+                            <span aria-hidden="true">+</span> Ajouter g(x)
+                        </button>
+                        <div class="g-expression-row" id="gExpressionRow" hidden>
+                            <div class="expression-input">
+                                <span class="expression-prefix">g(x) =</span>
+                                <input type="text" id="gExpr" aria-label="Expression g(x)"
+                                       placeholder="ex: cos(x) + 1" autocomplete="off"
+                                       spellcheck="false" maxlength="255">
+                                <button class="remove-function-button" id="removeGButton"
+                                        type="button" aria-label="Retirer g(x)"
+                                        title="Retirer g(x)">×</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="parameter-section" aria-label="Paramètres dynamiques" hidden>
+                        <button class="parameter-section-toggle" id="parametersToggle" type="button"
+                                aria-expanded="false" aria-controls="parameterControls">
+                            <span>Paramètres (a, b)</span>
+                            <span class="parameter-section-chevron" aria-hidden="true">⌄</span>
+                        </button>
+                        <div class="parameter-controls" id="parameterControls" hidden>
+                            <label class="parameter-control" for="parameterA">
+                                <span class="parameter-control-heading">
+                                    <span>a</span><output id="parameterAValue">1.0</output>
+                                </span>
+                                <input class="parameter-slider" type="range" id="parameterA"
+                                       min="-10" max="10" step="0.1" value="1">
+                            </label>
+                            <label class="parameter-control" for="parameterB">
+                                <span class="parameter-control-heading">
+                                    <span>b</span><output id="parameterBValue">1.0</output>
+                                </span>
+                                <input class="parameter-slider" type="range" id="parameterB"
+                                       min="-10" max="10" step="0.1" value="1">
+                            </label>
+                        </div>
+                    </section>
+
+                    <div class="range-grid">
+                        <div class="input-group">
+                            <label for="xmin">X min</label>
+                            <input type="number" id="xmin" value="-10" step="any">
+                        </div>
+                        <div class="input-group">
+                            <label for="xmax">X max</label>
+                            <input type="number" id="xmax" value="10" step="any">
+                        </div>
+                        <div class="input-group x-value-group">
+                            <label for="xval">x =</label>
+                            <input type="number" id="xval" value="2" step="any"
+                                   aria-label="Évaluer f(x) pour x">
+                        </div>
+                    </div>
+                    <button id="plotBtn" class="plot-button" type="button">
+                        <span>Calculer & tracer</span>
+                        <span aria-hidden="true">↗</span>
+                    </button>
+
+                    <details class="sidebar-accordion analysis-accordion" id="analysisAccordion">
+                        <summary class="sidebar-accordion-summary">
+                            <span>Analyse & Courbes</span>
+                            <span class="sidebar-accordion-meta">
+                                <span class="accordion-count" id="analysisActiveCount" hidden></span>
+                                <span class="accordion-chevron" aria-hidden="true">⌄</span>
+                            </span>
+                        </summary>
+                        <div class="sidebar-accordion-content">
+                            <label class="derivative-toggle" for="showDerivative">
+                                <span class="toggle-copy">
+                                    <span class="toggle-title">Afficher la dérivée</span>
+                                    <span class="toggle-subtitle">Tracer f'(x) en violet</span>
+                                </span>
+                                <input type="checkbox" id="showDerivative">
+                                <span class="switch" aria-hidden="true"></span>
+                            </label>
+                            <label class="derivative-toggle" id="gDerivativeToggle"
+                                   for="showGDerivative" hidden>
+                                <span class="toggle-copy">
+                                    <span class="toggle-title">Afficher la dérivée de g</span>
+                                    <span class="toggle-subtitle">Tracer g'(x) en pointillés</span>
+                                </span>
+                                <input type="checkbox" id="showGDerivative">
+                                <span class="switch" aria-hidden="true"></span>
+                            </label>
+                            <label class="derivative-toggle" id="concavityToggle"
+                                   for="showConcavity">
+                                <span class="toggle-copy">
+                                    <span class="toggle-title">Analyser la concavité</span>
+                                    <span class="toggle-subtitle">Tracer f''(x) & points d'inflexion</span>
+                                </span>
+                                <input type="checkbox" id="showConcavity">
+                                <span class="switch" aria-hidden="true"></span>
+                            </label>
+                            <label class="derivative-toggle" id="keyPointsToggle"
+                                   for="showKeyPoints">
+                                <span class="toggle-copy">
+                                    <span class="toggle-title">Points remarquables</span>
+                                    <span class="toggle-subtitle">Racines f(x)=0 & Intersections f=g</span>
+                                </span>
+                                <input type="checkbox" id="showKeyPoints">
+                                <span class="switch" aria-hidden="true"></span>
+                            </label>
+                            <label class="derivative-toggle" id="tangentToggle"
+                                   for="showTangent">
+                                <span class="toggle-copy">
+                                    <span class="toggle-title">Droite tangente</span>
+                                    <span class="toggle-subtitle">Tangente à f(x) au point x</span>
+                                </span>
+                                <input type="checkbox" id="showTangent">
+                                <span class="switch" aria-hidden="true"></span>
+                            </label>
+                        </div>
+                    </details>
+
+                    <details class="sidebar-accordion advanced-accordion" id="advancedSettingsAccordion">
+                        <summary class="sidebar-accordion-summary">
+                            <span>Paramètres avancés</span>
+                            <span class="sidebar-accordion-meta">
+                                <span class="accordion-count" id="advancedActiveCount" hidden></span>
+                                <span class="accordion-chevron" aria-hidden="true">⌄</span>
+                            </span>
+                        </summary>
+                        <div class="sidebar-accordion-content advanced-settings-content">
+                            <div class="y-axis-control">
+                                <div class="y-axis-control-heading">
+                                    <span class="control-setting-label">Axe Y</span>
+                                    <button class="auto-bounds-button is-active" id="yAxisModeToggle"
+                                            type="button" aria-pressed="true">Auto</button>
+                                </div>
+                                <div class="y-axis-bound-grid" id="yAxisBounds" hidden>
+                                    <div class="input-group">
+                                        <label for="ymin">Y minimum</label>
+                                        <input type="number" id="ymin" value="-10" step="any" disabled>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="ymax">Y maximum</label>
+                                        <input type="number" id="ymax" value="10" step="any" disabled>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="control-setting-row">
+                                <span class="control-setting-label">Mode d'angle</span>
+                                <div class="angle-mode-toggle" role="group" aria-label="Mode d'angle">
+                                    <button class="angle-mode-button is-active" type="button"
+                                            data-angle="rad" aria-pressed="true">RAD</button>
+                                    <button class="angle-mode-button" type="button"
+                                            data-angle="deg" aria-pressed="false">DEG</button>
+                                </div>
+                            </div>
+                            <section class="integration-controls" aria-label="Bornes d'intégration">
+                                <div class="integration-heading">
+                                    <span class="control-setting-label">Bornes d'intégration</span>
+                                    <button class="auto-bounds-button is-active" id="integrationAutoBtn"
+                                            type="button" aria-pressed="true">Auto (= vue)</button>
+                                </div>
+                                <div class="integration-bound-grid">
+                                    <div class="input-group">
+                                        <label for="intMin">x₁</label>
+                                        <input type="number" id="intMin" value="-10" step="any" disabled>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="intMax">x₂</label>
+                                        <input type="number" id="intMax" value="10" step="any" disabled>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    </details>
                 </div>
 
-                <section class="expression-section" aria-label="Expression mathématique">
-                    <label class="field-label" for="expr">Expression <span>f(x)</span></label>
-                    <div class="expression-input-row">
-                        <div class="expression-input">
-                            <span class="expression-prefix">f(x) =</span>
-                            <input type="text" id="expr"
-                                   placeholder="ex: sin(x) * x"
+                <section class="sequence-mode-content" id="sequenceModeContent"
+                         aria-label="Calcul de suites" hidden>
+                    <div class="panel-heading compact-panel-heading">
+                        <h2>Suite numérique</h2>
+                    </div>
+                    <label class="field-label" for="sequenceExpr">Expression de la suite</label>
+                    <div class="expression-input-row sequence-expression-row">
+                        <div class="expression-input sequence-expression">
+                            <span class="expression-prefix" id="sequenceExpressionPrefix">uₙ =</span>
+                            <input type="text" id="sequenceExpr" placeholder="ex: 1/n"
                                    autocomplete="off" spellcheck="false" maxlength="255">
                         </div>
-                        <button class="keypad-toggle" id="keypadToggle" type="button"
+                        <button class="keypad-toggle" id="sequenceKeypadToggle" type="button"
                                 aria-expanded="false" aria-controls="mathKeyboard">
                             <span aria-hidden="true">⌨</span>
                             <span>Clavier</span>
                             <span class="toggle-chevron" aria-hidden="true">⌄</span>
                         </button>
                     </div>
-
-                    <button class="add-function-button" id="addGButton" type="button"
-                            aria-expanded="false" aria-controls="gExpressionRow">
-                        <span aria-hidden="true">+</span> Ajouter g(x)
-                    </button>
-                    <div class="g-expression-row" id="gExpressionRow" hidden>
-                        <div class="expression-input">
-                            <span class="expression-prefix">g(x) =</span>
-                            <input type="text" id="gExpr" aria-label="Expression g(x)"
-                                   placeholder="ex: cos(x) + 1" autocomplete="off" spellcheck="false"
-                                   maxlength="255">
-                            <button class="remove-function-button" id="removeGButton" type="button"
-                                    aria-label="Retirer g(x)" title="Retirer g(x)">×</button>
+                    <span id="sequenceKeyboardSlot" hidden></span>
+                    <div class="sequence-type-switch" id="sequenceTypeSwitch" role="group"
+                         aria-label="Type de suite">
+                        <button class="sequence-type-button is-active" type="button"
+                                data-sequence-type="explicit" aria-pressed="true">
+                            Explicite
+                        </button>
+                        <button class="sequence-type-button" type="button"
+                                data-sequence-type="recursive" aria-pressed="false">
+                            Récurrente
+                        </button>
+                    </div>
+                    <p class="sequence-type-description" id="sequenceTypeDescription">
+                        uₙ = f(n)
+                    </p>
+                    <div class="sequence-input-grid">
+                        <div class="input-group" id="sequenceNminGroup">
+                            <label for="sequenceNmin">n minimum</label>
+                            <input type="number" id="sequenceNmin" value="0" step="1">
+                        </div>
+                        <div class="input-group">
+                            <label for="sequenceNmax">n maximum</label>
+                            <input type="number" id="sequenceNmax" value="20" step="1">
+                        </div>
+                        <div class="input-group">
+                            <label for="sequenceEvalN">Évaluer pour n =</label>
+                            <input type="number" id="sequenceEvalN" value="5" step="1">
+                        </div>
+                        <div class="input-group" id="sequenceU0Group" hidden>
+                            <label for="sequenceU0">Valeur initiale u₀</label>
+                            <input type="number" id="sequenceU0" value="0" step="any">
                         </div>
                     </div>
-
-                    <div class="math-keyboard" id="mathKeyboard" hidden>
-                        <div class="key-group">
-                            <span class="key-group-title">Variables & constantes</span>
-                            <div class="key-grid key-grid-three">
-                                <button type="button" class="math-key" data-insert="x">x</button>
-                                <button type="button" class="math-key" data-insert="pi">π</button>
-                                <button type="button" class="math-key" data-insert="e">e</button>
-                            </div>
+                    <button class="plot-button" id="sequencePlotButton" type="button">
+                        <span>Calculer la suite</span><span aria-hidden="true">↗</span>
+                    </button>
+                    <p class="sequence-status" id="sequenceStatus" role="status" aria-live="polite"></p>
+                    <div class="sequence-terms-panel">
+                        <div class="sequence-terms-heading">
+                            <span>Termes calculés</span>
+                            <span id="sequenceTermCount">0</span>
                         </div>
-                        <div class="key-group">
-                            <span class="key-group-title">Opérateurs</span>
-                            <div class="key-grid">
-                                <button type="button" class="math-key" data-insert="+">+</button>
-                                <button type="button" class="math-key" data-insert="-">−</button>
-                                <button type="button" class="math-key" data-insert="*">×</button>
-                                <button type="button" class="math-key" data-insert="/">÷</button>
-                                <button type="button" class="math-key" data-insert="^">^</button>
-                                <button type="button" class="math-key" data-insert="(">(</button>
-                                <button type="button" class="math-key" data-insert=")">)</button>
-                                <button type="button" class="math-key" data-insert=".">.</button>
-                            </div>
-                        </div>
-                        <div class="key-group">
-                            <span class="key-group-title">Fonctions</span>
-                            <div class="key-grid">
-                                <button type="button" class="math-key function-key" data-insert="sin()" data-caret="4">sin</button>
-                                <button type="button" class="math-key function-key" data-insert="cos()" data-caret="4">cos</button>
-                                <button type="button" class="math-key function-key" data-insert="tan()" data-caret="4">tan</button>
-                                <button type="button" class="math-key function-key" data-insert="sqrt()" data-caret="5">√</button>
-                                <button type="button" class="math-key function-key" data-insert="abs()" data-caret="4">abs</button>
-                                <button type="button" class="math-key function-key" data-insert="ln()" data-caret="3">ln</button>
-                                <button type="button" class="math-key function-key" data-insert="log()" data-caret="4">log</button>
-                                <button type="button" class="math-key function-key" data-insert="exp()" data-caret="4">exp</button>
-                            </div>
-                        </div>
-                        <div class="key-grid keypad-controls">
-                            <button type="button" class="math-key utility-key" data-key-action="backspace" aria-label="Retour arrière">⌫</button>
-                            <button type="button" class="math-key utility-key" data-key-action="clear">C</button>
-                            <button type="button" class="math-key plot-key" data-key-action="plot">= Tracer</button>
+                        <div class="sequence-table-wrap">
+                            <table class="sequence-table">
+                                <thead><tr><th>n</th><th>uₙ</th></tr></thead>
+                                <tbody id="sequenceTermsBody"></tbody>
+                            </table>
                         </div>
                     </div>
                 </section>
 
-                <div class="section-divider"></div>
-                <div class="panel-subheading">
-                    <span class="field-label">Paramètres du graphe</span>
-                    <span class="eyebrow">02</span>
-                </div>
-                <div class="range-grid">
-                    <div class="input-group">
-                        <label for="xmin">X minimum</label>
-                        <input type="number" id="xmin" value="-10" step="any">
+                <details class="sidebar-accordion examples-accordion" id="examplesAccordion">
+                    <summary class="sidebar-accordion-summary">
+                        <span>Exemples & Historique</span>
+                        <span class="sidebar-accordion-meta">
+                            <span class="accordion-count" id="historyCount" hidden></span>
+                            <span class="accordion-chevron" aria-hidden="true">⌄</span>
+                        </span>
+                    </summary>
+                    <div class="sidebar-accordion-content examples-content">
+                        <div id="functionExamplesContent">
+                            <div class="expression-history" id="expressionHistory" hidden>
+                                <div class="expression-history-heading">
+                                    <span>Récents</span>
+                                    <button id="clearHistoryButton" type="button">Effacer</button>
+                                </div>
+                                <div class="expression-history-chips" id="historyChips"></div>
+                                <p class="expression-history-status" id="historyStatus"
+                                   role="status" aria-live="polite"></p>
+                            </div>
+                            <div class="presets">
+                                <button class="preset" type="button" data-fn="sin(x) * x"><span>sin(x) · x</span><span>↗</span></button>
+                                <button class="preset" type="button" data-fn="x^3 - 3*x"><span>x³ − 3x</span><span>↗</span></button>
+                                <button class="preset" type="button" data-fn="cos(x) / (1 + x^2)"><span>cos(x) / (1 + x²)</span><span>↗</span></button>
+                                <button class="preset" type="button" data-fn="tan(x)"><span>tan(x)</span><span>↗</span></button>
+                                <button class="preset" type="button" data-fn="exp(-0.2*x) * sin(3*x)"><span>Onde amortie</span><span>↗</span></button>
+                            </div>
+                        </div>
+                        <div class="sequence-presets" id="sequenceExamplesContent"
+                             aria-label="Exemples de suites" hidden>
+                            <span class="sequence-presets-title">Exemples rapides</span>
+                            <button class="sequence-preset" type="button"
+                                    data-sequence-preset="inverse">1 / (n + 1)</button>
+                            <button class="sequence-preset" type="button"
+                                    data-sequence-preset="alternating">(-1)^n / (n + 1)</button>
+                            <button class="sequence-preset" type="button"
+                                    data-sequence-preset="recursive">0.5*u + 2, u₀ = 0</button>
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <label for="xmax">X maximum</label>
-                        <input type="number" id="xmax" value="10" step="any">
+                </details>
+                <div class="math-keyboard" id="mathKeyboard" hidden>
+                    <div class="key-group">
+                        <span class="key-group-title">Variables & constantes</span>
+                        <div class="key-grid key-grid-three">
+                            <button type="button" class="math-key" data-insert-variable>x</button>
+                            <button type="button" class="math-key" data-insert="pi">π</button>
+                            <button type="button" class="math-key" data-insert="e">e</button>
+                        </div>
                     </div>
-                    <div class="input-group x-value-group">
-                        <label for="xval">Évaluer f(x) pour x =</label>
-                        <input type="number" id="xval" value="2" step="any">
+                    <div class="key-group">
+                        <span class="key-group-title">Opérateurs</span>
+                        <div class="key-grid">
+                            <button type="button" class="math-key" data-insert="+">+</button>
+                            <button type="button" class="math-key" data-insert="-">−</button>
+                            <button type="button" class="math-key" data-insert="*">×</button>
+                            <button type="button" class="math-key" data-insert="/">÷</button>
+                            <button type="button" class="math-key" data-insert="^">^</button>
+                            <button type="button" class="math-key" data-insert="(">(</button>
+                            <button type="button" class="math-key" data-insert=")">)</button>
+                            <button type="button" class="math-key" data-insert=".">.</button>
+                        </div>
                     </div>
-                </div>
-                <button id="plotBtn" class="plot-button" type="button">
-                    <span>Calculer & tracer</span>
-                    <span aria-hidden="true">↗</span>
-                </button>
-
-                <label class="derivative-toggle" for="showDerivative">
-                    <span class="toggle-copy">
-                        <span class="toggle-title">Afficher la dérivée</span>
-                        <span class="toggle-subtitle">Tracer f'(x) en violet</span>
-                    </span>
-                    <input type="checkbox" id="showDerivative">
-                    <span class="switch" aria-hidden="true"></span>
-                </label>
-                <label class="derivative-toggle" id="gDerivativeToggle" for="showGDerivative" hidden>
-                    <span class="toggle-copy">
-                        <span class="toggle-title">Afficher la dérivée de g</span>
-                        <span class="toggle-subtitle">Tracer g'(x) en pointillés</span>
-                    </span>
-                    <input type="checkbox" id="showGDerivative">
-                    <span class="switch" aria-hidden="true"></span>
-                </label>
-
-                <div class="section-divider"></div>
-                <div class="panel-subheading">
-                    <span class="field-label">Exemples rapides</span>
-                    <span class="eyebrow">03</span>
-                </div>
-                <div class="presets">
-                    <button class="preset" type="button" data-fn="sin(x) * x"><span>sin(x) · x</span><span>↗</span></button>
-                    <button class="preset" type="button" data-fn="x^3 - 3*x"><span>x³ − 3x</span><span>↗</span></button>
-                    <button class="preset" type="button" data-fn="cos(x) / (1 + x^2)"><span>cos(x) / (1 + x²)</span><span>↗</span></button>
-                    <button class="preset" type="button" data-fn="tan(x)"><span>tan(x)</span><span>↗</span></button>
-                    <button class="preset" type="button" data-fn="exp(-0.2*x) * sin(3*x)"><span>Onde amortie</span><span>↗</span></button>
+                    <div class="key-group">
+                        <span class="key-group-title">Fonctions</span>
+                        <div class="key-grid">
+                            <button type="button" class="math-key function-key" data-insert="sin()" data-caret="4">sin</button>
+                            <button type="button" class="math-key function-key" data-insert="cos()" data-caret="4">cos</button>
+                            <button type="button" class="math-key function-key" data-insert="tan()" data-caret="4">tan</button>
+                            <button type="button" class="math-key function-key" data-insert="sqrt()" data-caret="5">√</button>
+                            <button type="button" class="math-key function-key" data-insert="abs()" data-caret="4">abs</button>
+                            <button type="button" class="math-key function-key" data-insert="ln()" data-caret="3">ln</button>
+                            <button type="button" class="math-key function-key" data-insert="log()" data-caret="4">log</button>
+                            <button type="button" class="math-key function-key" data-insert="exp()" data-caret="4">exp</button>
+                        </div>
+                    </div>
+                    <div class="key-grid keypad-controls">
+                        <button type="button" class="math-key utility-key" data-key-action="backspace" aria-label="Retour arrière">⌫</button>
+                        <button type="button" class="math-key utility-key" data-key-action="clear">C</button>
+                        <button type="button" class="math-key plot-key" data-key-action="plot">= Tracer</button>
+                    </div>
                 </div>
             </aside>
 
             <section class="graph-panel" aria-label="Graphe de la fonction">
                 <div class="graph-heading">
-                    <div>
+                    <div class="graph-heading-title">
                         <span class="eyebrow">VISUALISATION</span>
-                        <h2>Graphe <span class="live-mark"></span></h2>
+                        <h2><span id="graphTitle">Graphe</span> <span class="live-mark"></span></h2>
                     </div>
-                    <div class="graph-mode-switch" id="graphModeSwitch" role="group"
-                         aria-label="Fonctions affichées" hidden>
-                        <button class="graph-mode-button" type="button" data-mode="f"
-                                aria-pressed="false">f(x)</button>
-                        <button class="graph-mode-button" type="button" data-mode="g"
-                                aria-pressed="false">g(x)</button>
-                        <button class="graph-mode-button is-active" type="button" data-mode="both"
-                                aria-pressed="true">Les deux</button>
-                    </div>
-                    <div class="graph-actions">
-                        <button id="resetBtn" class="secondary-btn" type="button">
-                            <span aria-hidden="true">⟳</span> Réinitialiser
-                        </button>
-                        <button id="exportBtn" class="secondary-btn export-button" type="button">
-                            <span aria-hidden="true">↓</span> Exporter PNG
-                        </button>
+                    <div class="graph-toolbar">
+                        <div class="graph-mode-switch" id="graphModeSwitch" role="group"
+                             aria-label="Fonctions affichées" hidden>
+                            <button class="graph-mode-button" type="button" data-mode="f"
+                                    aria-pressed="false">f(x)</button>
+                            <button class="graph-mode-button" type="button" data-mode="g"
+                                    aria-pressed="false">g(x)</button>
+                            <button class="graph-mode-button is-active" type="button" data-mode="both"
+                                    aria-pressed="true">f &amp; g</button>
+                        </div>
+                        <div class="graph-actions">
+                            <button id="valuesTableBtn" class="secondary-btn" type="button"
+                                    aria-haspopup="dialog" aria-controls="valuesDialog">Tableau</button>
+                            <button id="resetBtn" class="secondary-btn" type="button">
+                                <span aria-hidden="true">⟳</span> Réinitialiser
+                            </button>
+                            <button id="fullscreenBtn" class="secondary-btn" type="button"
+                                    aria-pressed="false" title="Plein écran">⛶ Plein écran</button>
+                            <details class="graph-menu" id="displayMenu">
+                                <summary class="graph-menu-summary">Affichage <span aria-hidden="true">▾</span></summary>
+                                <div class="graph-menu-popover">
+                                    <button id="gridToggle" class="secondary-btn graph-toggle is-active"
+                                            type="button" aria-pressed="true">Grille</button>
+                                    <button id="integralToggle" class="secondary-btn graph-toggle is-active"
+                                            type="button" aria-pressed="true">Aire ∫</button>
+                                </div>
+                            </details>
+                            <details class="graph-menu" id="exportMenu">
+                                <summary class="graph-menu-summary">Exporter <span aria-hidden="true">▾</span></summary>
+                                <div class="graph-menu-popover">
+                                    <button id="exportBtn" class="secondary-btn export-button" type="button">
+                                        <span aria-hidden="true">↓</span> Exporter PNG
+                                    </button>
+                                    <button id="exportCsvBtn" class="secondary-btn" type="button">
+                                        Exporter CSV
+                                    </button>
+                                    <button id="shareBtn" class="secondary-btn" type="button">
+                                        Partager le lien
+                                    </button>
+                                </div>
+                            </details>
+                        </div>
                     </div>
                 </div>
+                <p class="graph-action-status" id="graphActionStatus"
+                   role="status" aria-live="polite"></p>
 
                 <div class="result-bar" id="resultBar">
-                    <span class="result-item"><span class="result-label">f(x)</span><strong id="fResult">—</strong></span>
-                    <span class="result-item"><span class="result-label">f'(x)</span><strong id="derivativeResult">—</strong></span>
-                    <span class="result-item integral-result"><span class="result-label">∫ f(x) dx</span><strong id="integralResult">—</strong></span>
-                    <span class="result-item g-result is-hidden" id="gResultItem">
-                        <span class="result-label">g(x)</span><strong id="gResult">...</strong>
-                    </span>
-                    <span class="result-item g-result is-hidden" id="gDerivativeResultItem">
-                        <span class="result-label">g'(x)</span><strong id="gDerivativeResult"></strong>
-                    </span>
-                    <span class="result-item g-result is-hidden" id="gIntegralResultItem">
-                        <span class="result-label">∫ g(x) dx</span><strong id="gIntegralResult"></strong>
-                    </span>
+                    <div class="result-row function-results-row" id="functionResultsRow">
+                        <span class="result-item function-result-item"><span class="result-label">f(x)</span><strong id="fResult">—</strong></span>
+                        <span class="result-item function-result-item"><span class="result-label">f'(x)</span><strong id="derivativeResult">—</strong></span>
+                        <span class="result-item concavity-result function-result-item">
+                            <span class="result-label">f''(x)</span>
+                            <strong id="secondDerivativeResult">—</strong>
+                            <span class="concavity-badge" id="concavityBadge">—</span>
+                        </span>
+                        <span class="result-item tangent-result-item function-result-item is-hidden"
+                              id="tangentResultItem">
+                            <span class="result-label">Tangente en x₀</span>
+                            <strong id="tangentResult"></strong>
+                        </span>
+                        <span class="result-item integral-result function-result-item"><span class="result-label">∫ f(x) dx</span><strong id="integralResult">—</strong></span>
+                    </div>
+                    <div class="result-row g-results-row" id="gResultsRow" hidden>
+                        <span class="result-item g-result function-result-item is-hidden" id="gResultItem">
+                            <span class="result-label">g(x)</span><strong id="gResult">...</strong>
+                        </span>
+                        <span class="result-item g-result function-result-item is-hidden" id="gDerivativeResultItem">
+                            <span class="result-label">g'(x)</span><strong id="gDerivativeResult"></strong>
+                        </span>
+                        <span class="result-item g-result function-result-item is-hidden" id="gIntegralResultItem">
+                            <span class="result-label">∫ g(x) dx</span><strong id="gIntegralResult"></strong>
+                        </span>
+                    </div>
+                    <div class="result-row sequence-results-row" id="sequenceResultsRow" hidden>
+                        <span class="result-item sequence-result-item">
+                            <span class="result-label">u<sub id="sequenceEvalIndex">5</sub></span>
+                            <strong id="sequenceEvalValue">—</strong>
+                        </span>
+                        <span class="result-item sequence-result-item">
+                            <span class="result-label" id="sequenceLastLabel">Dernier terme</span>
+                            <strong id="sequenceLastValue">—</strong>
+                        </span>
+                    </div>
                 </div>
 
                 <div class="canvas-wrapper">
@@ -295,6 +606,12 @@
                         <span class="g-derivative-legend is-hidden">
                             <i class="legend-line g-derivative-line"></i> g'(x)
                         </span>
+                        <span class="concavity-legend is-hidden" id="concavityLegend">
+                            <i class="legend-line concavity-line"></i> f''(x) / Inflexion
+                        </span>
+                        <span class="sequence-legend" id="sequenceLegend" hidden>
+                            <i class="legend-line sequence-line"></i> uₙ
+                        </span>
                     </div>
                     <span class="graph-hint">Molette ou pincement pour zoomer <span>·</span> Glisser pour déplacer</span>
                 </div>
@@ -306,6 +623,6 @@
             <a class="footer-email" href="mailto:c.math.plotter@gmail.com">c.math.plotter@gmail.com</a>
         </footer>
     </div>
-    <script src="script.js?v=9" defer></script>
+    <script src="script.js?v=19" defer></script>
 </body>
 </html>

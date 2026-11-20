@@ -31,7 +31,14 @@ typedef int socket_t;
 #define E_VAL  2.71828182845904523536
 
 // --- 1. PARSEUR MATHÉMATIQUE (Recursive Descent) ---
-double parse_expr(const char **p, double x);
+typedef struct {
+    double x;
+    double a;
+    double b;
+    int angle_degrees;
+} EvalContext;
+
+double parse_expr(const char **p, const EvalContext *context);
 
 void skip_spaces(const char **p) {
     while (**p && isspace((unsigned char)**p)) (*p)++;
@@ -39,7 +46,9 @@ void skip_spaces(const char **p) {
 
 int starts_primary(const char **p) {
     skip_spaces(p);
-    if (**p == '(' || **p == 'x' || **p == 'X' || **p == 'e' ||
+    if (**p == '(' || **p == 'x' || **p == 'X' ||
+        **p == 'n' || **p == 'N' || **p == 'u' || **p == 'U' ||
+        **p == 'a' || **p == 'A' || **p == 'b' || **p == 'B' || **p == 'e' ||
         isdigit((unsigned char)**p)) return 1;
     if (**p == '.' && isdigit((unsigned char)(*p)[1])) return 1;
     return strncmp(*p, "sin", 3) == 0 || strncmp(*p, "cos", 3) == 0 ||
@@ -49,12 +58,12 @@ int starts_primary(const char **p) {
            strncmp(*p, "pi", 2) == 0;
 }
 
-double parse_primary(const char **p, double x) {
+double parse_primary(const char **p, const EvalContext *context) {
     skip_spaces(p);
 
     if (**p == '(') {
         (*p)++;
-        double val = parse_expr(p, x);
+        double val = parse_expr(p, context);
         skip_spaces(p);
         if (**p != ')') return NAN;
         (*p)++;
@@ -62,17 +71,32 @@ double parse_primary(const char **p, double x) {
     }
 
     // Les fonctions w les constantes
-    if (strncmp(*p, "sin", 3) == 0)  { *p += 3; return sin(parse_primary(p, x)); }
-    if (strncmp(*p, "cos", 3) == 0)  { *p += 3; return cos(parse_primary(p, x)); }
-    if (strncmp(*p, "tan", 3) == 0)  { *p += 3; return tan(parse_primary(p, x)); }
-    if (strncmp(*p, "sqrt", 4) == 0) { *p += 4; return sqrt(parse_primary(p, x)); }
-    if (strncmp(*p, "abs", 3) == 0)  { *p += 3; return fabs(parse_primary(p, x)); }
-    if (strncmp(*p, "exp", 3) == 0)  { *p += 3; return exp(parse_primary(p, x)); }
-    if (strncmp(*p, "log", 3) == 0)  { *p += 3; return log10(parse_primary(p, x)); }
-    if (strncmp(*p, "ln", 2) == 0)   { *p += 2; return log(parse_primary(p, x)); }
+    if (strncmp(*p, "sin", 3) == 0) {
+        *p += 3;
+        double value = parse_primary(p, context);
+        return sin(context->angle_degrees ? value * PI_VAL / 180.0 : value);
+    }
+    if (strncmp(*p, "cos", 3) == 0) {
+        *p += 3;
+        double value = parse_primary(p, context);
+        return cos(context->angle_degrees ? value * PI_VAL / 180.0 : value);
+    }
+    if (strncmp(*p, "tan", 3) == 0) {
+        *p += 3;
+        double value = parse_primary(p, context);
+        return tan(context->angle_degrees ? value * PI_VAL / 180.0 : value);
+    }
+    if (strncmp(*p, "sqrt", 4) == 0) { *p += 4; return sqrt(parse_primary(p, context)); }
+    if (strncmp(*p, "abs", 3) == 0)  { *p += 3; return fabs(parse_primary(p, context)); }
+    if (strncmp(*p, "exp", 3) == 0)  { *p += 3; return exp(parse_primary(p, context)); }
+    if (strncmp(*p, "log", 3) == 0)  { *p += 3; return log10(parse_primary(p, context)); }
+    if (strncmp(*p, "ln", 2) == 0)   { *p += 2; return log(parse_primary(p, context)); }
     if (strncmp(*p, "pi", 2) == 0)   { *p += 2; return PI_VAL; }
 
-    if (**p == 'x' || **p == 'X') { (*p)++; return x; }
+    if (**p == 'x' || **p == 'X' || **p == 'n' || **p == 'N' ||
+        **p == 'u' || **p == 'U') { (*p)++; return context->x; }
+    if (**p == 'a' || **p == 'A') { (*p)++; return context->a; }
+    if (**p == 'b' || **p == 'B') { (*p)++; return context->b; }
     if (**p == 'e')               { (*p)++; return E_VAL; }
 
     // Les nombres
@@ -85,70 +109,86 @@ double parse_primary(const char **p, double x) {
     return NAN;
 }
 
-double parse_power(const char **p, double x);
+double parse_power(const char **p, const EvalContext *context);
 
-double parse_unary(const char **p, double x) {
+double parse_unary(const char **p, const EvalContext *context) {
     skip_spaces(p);
-    if (**p == '-') { (*p)++; return -parse_unary(p, x); }
-    if (**p == '+') { (*p)++; return parse_unary(p, x); }
-    return parse_power(p, x);
+    if (**p == '-') { (*p)++; return -parse_unary(p, context); }
+    if (**p == '+') { (*p)++; return parse_unary(p, context); }
+    return parse_power(p, context);
 }
 
-double parse_power(const char **p, double x) {
-    double base = parse_primary(p, x);
+double parse_power(const char **p, const EvalContext *context) {
+    double base = parse_primary(p, context);
     skip_spaces(p);
     if (**p == '^') {
         (*p)++;
-        double exp_val = parse_unary(p, x);
+        double exp_val = parse_unary(p, context);
         return pow(base, exp_val);
     }
     return base;
 }
 
-double parse_term(const char **p, double x) {
-    double val = parse_unary(p, x);
+double parse_term(const char **p, const EvalContext *context) {
+    double val = parse_unary(p, context);
     while (1) {
         skip_spaces(p);
-        if (**p == '*') { (*p)++; val *= parse_unary(p, x); }
-        else if (**p == '/') { (*p)++; val /= parse_unary(p, x); }
-        else if (starts_primary(p)) val *= parse_unary(p, x);
+        if (**p == '*') { (*p)++; val *= parse_unary(p, context); }
+        else if (**p == '/') { (*p)++; val /= parse_unary(p, context); }
+        else if (starts_primary(p)) val *= parse_unary(p, context);
         else break;
     }
     return val;
 }
 
-double parse_expr(const char **p, double x) {
-    double val = parse_term(p, x);
+double parse_expr(const char **p, const EvalContext *context) {
+    double val = parse_term(p, context);
     while (1) {
         skip_spaces(p);
-        if (**p == '+') { (*p)++; val += parse_term(p, x); }
-        else if (**p == '-') { (*p)++; val -= parse_term(p, x); }
+        if (**p == '+') { (*p)++; val += parse_term(p, context); }
+        else if (**p == '-') { (*p)++; val -= parse_term(p, context); }
         else break;
     }
     return val;
 }
 
-double eval_function(const char *expr, double x) {
+double eval_function(const char *expr, double x, double a, double b, int angle_degrees) {
     const char *p = expr;
-    double result = parse_expr(&p, x);
+    EvalContext context = { x, a, b, angle_degrees };
+    double result = parse_expr(&p, &context);
     skip_spaces(&p);
     return *p ? NAN : result;
 }
 
-double derivative_function(const char *expr, double x) {
+double derivative_function(const char *expr, double x, double a, double b, int angle_degrees) {
     double h = 1e-5 * fmax(1.0, fabs(x));
-    return (eval_function(expr, x + h) - eval_function(expr, x - h)) / (2.0 * h);
+    return (eval_function(expr, x + h, a, b, angle_degrees) -
+            eval_function(expr, x - h, a, b, angle_degrees)) / (2.0 * h);
 }
 
-double integrate_function(const char *expr, double xmin, double xmax) {
+static double second_derivative_with_context(const char *expr, double x,
+                                            double a, double b, int angle_degrees) {
+    double h = 1e-4 * fmax(1.0, fabs(x));
+    return (eval_function(expr, x + h, a, b, angle_degrees) -
+            2.0 * eval_function(expr, x, a, b, angle_degrees) +
+            eval_function(expr, x - h, a, b, angle_degrees)) / (h * h);
+}
+
+double second_derivative_function(const char *expr, double x) {
+    return second_derivative_with_context(expr, x, 1.0, 1.0, 0);
+}
+
+double integrate_function(const char *expr, double xmin, double xmax,
+                          double a, double b, int angle_degrees) {
     const int steps = 1000;
     double dx = (xmax - xmin) / steps;
     if (!isfinite(dx) || dx == 0.0) return NAN;
-    double sum = eval_function(expr, xmin) + eval_function(expr, xmax);
+    double sum = eval_function(expr, xmin, a, b, angle_degrees) +
+                 eval_function(expr, xmax, a, b, angle_degrees);
 
     if (!isfinite(sum)) return NAN;
     for (int i = 1; i < steps; i++) {
-        double y = eval_function(expr, xmin + i * dx);
+        double y = eval_function(expr, xmin + i * dx, a, b, angle_degrees);
         if (!isfinite(y)) return NAN;
         sum += (i % 2 ? 4.0 : 2.0) * y;
     }
@@ -215,6 +255,22 @@ static int parse_finite_number(const char *text, double fallback, double *value)
     while (*end && isspace((unsigned char)*end)) end++;
     if (*end) return -1;
     *value = parsed;
+    return 0;
+}
+
+static int parse_integer(const char *text, int fallback, int *value) {
+    if (!text || !*text) {
+        *value = fallback;
+        return 0;
+    }
+
+    errno = 0;
+    char *end = NULL;
+    long parsed = strtol(text, &end, 10);
+    if (end == text || errno == ERANGE || parsed < INT_MIN || parsed > INT_MAX) return -1;
+    while (*end && isspace((unsigned char)*end)) end++;
+    if (*end) return -1;
+    *value = (int)parsed;
     return 0;
 }
 
@@ -296,11 +352,112 @@ static int append_format(char *buffer, size_t capacity, size_t *offset,
     return 0;
 }
 
+static int append_json_number(char *buffer, size_t capacity, size_t *offset, double value) {
+    return isfinite(value)
+        ? append_format(buffer, capacity, offset, "%.10g", value)
+        : append_format(buffer, capacity, offset, "null");
+}
+
+static int build_sequence_response(char *buffer, size_t capacity, size_t *response_length,
+                                  const char *expr, const char *type,
+                                  int nmin, int nmax, int eval_n, double u0,
+                                  double a, double b, int angle_degrees) {
+    double values[500];
+    int first_n;
+    int term_count;
+    double eval_u;
+
+    if (strcmp(type, "explicit") == 0) {
+        long long count = (long long)nmax - (long long)nmin + 1;
+        if (count < 1 || count > 500) return -1;
+        first_n = nmin;
+        term_count = (int)count;
+        for (int i = 0; i < term_count; i++) {
+            int n = (int)((long long)nmin + i);
+            values[i] = eval_function(expr, (double)n, a, b, angle_degrees);
+        }
+        eval_u = eval_function(expr, (double)eval_n, a, b, angle_degrees);
+    } else {
+        if (nmax < 0 || nmax >= 500 || eval_n < 0 || eval_n > nmax) return -1;
+        first_n = 0;
+        term_count = nmax + 1;
+        values[0] = u0;
+        for (int i = 1; i < term_count; i++) {
+            values[i] = eval_function(expr, values[i - 1], a, b, angle_degrees);
+        }
+        eval_u = values[eval_n];
+    }
+
+    size_t offset = 0;
+    if (append_format(buffer, capacity, &offset,
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            "Access-Control-Allow-Origin: *\r\n"
+            "Connection: close\r\n\r\n"
+            "{\"type\":\"%s\",\"terms\":[", type) != 0) return -1;
+
+    for (int i = 0; i < term_count; i++) {
+        int n = first_n + i;
+        if ((i > 0 && append_format(buffer, capacity, &offset, ",") != 0) ||
+            append_format(buffer, capacity, &offset, "{\"n\":%d,\"u\":", n) != 0 ||
+            append_json_number(buffer, capacity, &offset, values[i]) != 0 ||
+            append_format(buffer, capacity, &offset, "}") != 0) return -1;
+    }
+
+    if (append_format(buffer, capacity, &offset, "],\"last\":") != 0 ||
+        append_json_number(buffer, capacity, &offset, values[term_count - 1]) != 0 ||
+        append_format(buffer, capacity, &offset, ",\"evalN\":%d,\"evalU\":", eval_n) != 0 ||
+        append_json_number(buffer, capacity, &offset, eval_u) != 0 ||
+        append_format(buffer, capacity, &offset, "}") != 0) return -1;
+
+    *response_length = offset;
+    return 0;
+}
+
+static int handle_sequence_request(socket_t client, const char *query,
+                                   char *buffer, size_t capacity) {
+    char expr[256], type[16], nmin_s[32], nmax_s[32], eval_n_s[32];
+    char u0_s[32], a_s[32], b_s[32], angle_s[8];
+    double u0, parameter_a, parameter_b;
+    int nmin, nmax, eval_n;
+
+    if (get_param(query, "expr", expr, sizeof(expr)) < 0 ||
+        get_param(query, "type", type, sizeof(type)) < 0 ||
+        get_param(query, "nmin", nmin_s, sizeof(nmin_s)) < 0 ||
+        get_param(query, "nmax", nmax_s, sizeof(nmax_s)) < 0 ||
+        get_param(query, "evalN", eval_n_s, sizeof(eval_n_s)) < 0 ||
+        get_param(query, "u0", u0_s, sizeof(u0_s)) < 0 ||
+        get_param(query, "a", a_s, sizeof(a_s)) < 0 ||
+        get_param(query, "b", b_s, sizeof(b_s)) < 0 ||
+        get_param(query, "angle", angle_s, sizeof(angle_s)) < 0 ||
+        !expr[0] ||
+        (strcmp(type, "explicit") != 0 && strcmp(type, "recursive") != 0) ||
+        parse_integer(nmin_s, 0, &nmin) != 0 ||
+        parse_integer(nmax_s, 20, &nmax) != 0 ||
+        parse_integer(eval_n_s, nmax, &eval_n) != 0 ||
+        parse_finite_number(u0_s, 0.0, &u0) != 0 ||
+        parse_finite_number(a_s, 1.0, &parameter_a) != 0 ||
+        parse_finite_number(b_s, 1.0, &parameter_b) != 0 ||
+        (angle_s[0] != '\0' && strcmp(angle_s, "rad") != 0 &&
+         strcmp(angle_s, "deg") != 0)) {
+        return send_text_response(client, "400 Bad Request", "Invalid sequence parameters\n");
+    }
+
+    size_t response_length;
+    if (build_sequence_response(buffer, capacity, &response_length, expr, type,
+            nmin, nmax, eval_n, u0, parameter_a, parameter_b,
+            strcmp(angle_s, "deg") == 0) != 0) {
+        return send_text_response(client, "400 Bad Request", "Sequence range exceeds 500 terms\n");
+    }
+    return send_all(client, buffer, response_length);
+}
+
 static int build_plot_response(char *buffer, size_t capacity, size_t *response_length,
                                const char *expr, double xmin, double xmax, double xval,
-                               int value_only) {
+                               double int_min, double int_max, double a, double b,
+                               int angle_degrees, int value_only) {
     size_t offset = 0;
-    double yval = eval_function(expr, xval);
+    double yval = eval_function(expr, xval, a, b, angle_degrees);
     if (append_format(buffer, capacity, &offset,
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: application/json\r\n"
@@ -315,10 +472,17 @@ static int build_plot_response(char *buffer, size_t capacity, size_t *response_l
         return 0;
     }
 
-    double derivative = derivative_function(expr, xval);
-    double integral = integrate_function(expr, xmin, xmax);
-    if (append_format(buffer, capacity, &offset, ",\"derivative\":") != 0 ||
+    double derivative = derivative_function(expr, xval, a, b, angle_degrees);
+    double second_derivative =
+        second_derivative_with_context(expr, xval, a, b, angle_degrees);
+    double integral = integrate_function(expr, int_min, int_max, a, b, angle_degrees);
+    if (append_format(buffer, capacity, &offset,
+            ",\"intMin\":%.10g,\"intMax\":%.10g,\"derivative\":",
+            int_min, int_max) != 0 ||
         append_format(buffer, capacity, &offset, isfinite(derivative) ? "%.6f" : "null", derivative) != 0 ||
+        append_format(buffer, capacity, &offset, ",\"secondDerivative\":") != 0 ||
+        append_format(buffer, capacity, &offset,
+            isfinite(second_derivative) ? "%.10g" : "null", second_derivative) != 0 ||
         append_format(buffer, capacity, &offset, ",\"integral\":") != 0 ||
         append_format(buffer, capacity, &offset, isfinite(integral) ? "%.6f" : "null", integral) != 0 ||
         append_format(buffer, capacity, &offset, ",\"points\":[") != 0) return -1;
@@ -327,7 +491,7 @@ static int build_plot_response(char *buffer, size_t capacity, size_t *response_l
     const double dx = (xmax - xmin) / steps;
     for (int i = 0; i <= steps; i++) {
         double cx = xmin + i * dx;
-        double cy = eval_function(expr, cx);
+        double cy = eval_function(expr, cx, a, b, angle_degrees);
         if ((i > 0 && append_format(buffer, capacity, &offset, ",") != 0) ||
             (isfinite(cx)
                 ? (isfinite(cy)
@@ -342,7 +506,22 @@ static int build_plot_response(char *buffer, size_t capacity, size_t *response_l
 
     for (int i = 0; i <= steps; i++) {
         double cx = xmin + i * dx;
-        double cy = derivative_function(expr, cx);
+        double cy = derivative_function(expr, cx, a, b, angle_degrees);
+        if ((i > 0 && append_format(buffer, capacity, &offset, ",") != 0) ||
+            (isfinite(cx)
+                ? (isfinite(cy)
+                    ? append_format(buffer, capacity, &offset,
+                        "{\"x\":%.10g,\"y\":%.10g}", cx, cy)
+                    : append_format(buffer, capacity, &offset,
+                        "{\"x\":%.10g,\"y\":null}", cx))
+                : append_format(buffer, capacity, &offset,
+                    "{\"x\":null,\"y\":null}")) != 0) return -1;
+    }
+    if (append_format(buffer, capacity, &offset, "],\"secondDerivativePoints\":[") != 0) return -1;
+
+    for (int i = 0; i <= steps; i++) {
+        double cx = xmin + i * dx;
+        double cy = second_derivative_with_context(expr, cx, a, b, angle_degrees);
         if ((i > 0 && append_format(buffer, capacity, &offset, ",") != 0) ||
             (isfinite(cx)
                 ? (isfinite(cy)
@@ -548,6 +727,13 @@ int main(void) {
             continue;
         }
 
+        const char *query = query_start ? query_start : "";
+        if (strcmp(request_path, "/sequence") == 0) {
+            (void)handle_sequence_request(client, query, response, RESPONSE_BUFFER_SIZE);
+            close_socket(client);
+            continue;
+        }
+
         if (strcmp(request_path, "/plot") != 0) {
             send_text_response(client, "404 Not Found", "Not Found\n");
             close_socket(client);
@@ -555,16 +741,27 @@ int main(void) {
         }
 
         char expr[256], xmin_s[32], xmax_s[32], xval_s[32], value_only_s[8];
-        const char *query = query_start ? query_start : "";
-        double xmin, xmax, xval;
+        char int_min_s[32], int_max_s[32], a_s[32], b_s[32], angle_s[8];
+        double xmin, xmax, xval, int_min, int_max, parameter_a, parameter_b;
         if (get_param(query, "expr", expr, sizeof(expr)) < 0 ||
             get_param(query, "xmin", xmin_s, sizeof(xmin_s)) < 0 ||
             get_param(query, "xmax", xmax_s, sizeof(xmax_s)) < 0 ||
             get_param(query, "xval", xval_s, sizeof(xval_s)) < 0 ||
             get_param(query, "valueOnly", value_only_s, sizeof(value_only_s)) < 0 ||
+            get_param(query, "intMin", int_min_s, sizeof(int_min_s)) < 0 ||
+            get_param(query, "intMax", int_max_s, sizeof(int_max_s)) < 0 ||
+            get_param(query, "a", a_s, sizeof(a_s)) < 0 ||
+            get_param(query, "b", b_s, sizeof(b_s)) < 0 ||
+            get_param(query, "angle", angle_s, sizeof(angle_s)) < 0 ||
             parse_finite_number(xmin_s, -10.0, &xmin) != 0 ||
             parse_finite_number(xmax_s, 10.0, &xmax) != 0 ||
             parse_finite_number(xval_s, 0.0, &xval) != 0 ||
+            parse_finite_number(int_min_s, xmin, &int_min) != 0 ||
+            parse_finite_number(int_max_s, xmax, &int_max) != 0 ||
+            parse_finite_number(a_s, 1.0, &parameter_a) != 0 ||
+            parse_finite_number(b_s, 1.0, &parameter_b) != 0 ||
+            (angle_s[0] != '\0' && strcmp(angle_s, "rad") != 0 &&
+             strcmp(angle_s, "deg") != 0) ||
             xmin >= xmax || !isfinite(xmax - xmin)) {
             send_text_response(client, "400 Bad Request", "Invalid numeric parameters\n");
             close_socket(client);
@@ -573,7 +770,8 @@ int main(void) {
 
         size_t response_length;
         if (build_plot_response(response, RESPONSE_BUFFER_SIZE, &response_length,
-                expr, xmin, xmax, xval, strcmp(value_only_s, "1") == 0) != 0) {
+                expr, xmin, xmax, xval, int_min, int_max, parameter_a, parameter_b,
+                strcmp(angle_s, "deg") == 0, strcmp(value_only_s, "1") == 0) != 0) {
             send_text_response(client, "500 Internal Server Error", "Response too large\n");
         } else {
             (void)send_all(client, response, response_length);
