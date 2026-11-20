@@ -197,6 +197,13 @@ button {
     color: var(--text);
 }
 
+.guide-dialog:not(.values-dialog) {
+    width: min(920px, calc(100% - 28px));
+    max-height: min(90vh, 960px);
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+}
+
 .guide-dialog::backdrop {
     background: rgba(3, 7, 12, 0.76);
     backdrop-filter: blur(5px);
@@ -257,6 +264,72 @@ button {
     color: var(--muted);
     font-size: 0.82rem;
     line-height: 1.55;
+}
+
+.guide-manual {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.guide-manual-section {
+    padding: 18px;
+}
+
+.guide-manual-section h3 {
+    margin-bottom: 13px;
+    font-size: 0.95rem;
+}
+
+.guide-manual-section h4 {
+    margin: 16px 0 7px;
+    font-size: 0.8rem;
+}
+
+.guide-manual-section p,
+.guide-manual-section li {
+    font-size: 0.8rem;
+    line-height: 1.65;
+}
+
+.guide-manual-section p {
+    margin: 0 0 10px;
+}
+
+.guide-manual-section ol,
+.guide-manual-section ul {
+    margin: 0 0 10px;
+    padding-left: 1.25rem;
+}
+
+.guide-manual-section li + li {
+    margin-top: 5px;
+}
+
+.guide-manual-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    margin: 12px 0;
+}
+
+.guide-manual-columns > div {
+    min-width: 0;
+}
+
+.guide-manual-section .guide-callout {
+    margin: 12px 0 0;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line-strong);
+    border-radius: 10px;
+}
+
+.guide-manual-section kbd {
+    padding: 2px 5px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    font: inherit;
 }
 
 .guide-grid {
@@ -2198,6 +2271,15 @@ a:focus-visible {
 
     .guide-grid {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .guide-manual-columns {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .guide-manual-section {
+        padding: 14px;
     }
 
     .graph-heading {

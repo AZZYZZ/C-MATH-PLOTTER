@@ -22,7 +22,7 @@
     <link rel="icon" type="image/jpeg" href="/favicon.jpeg?v=3">
     <link rel="shortcut icon" type="image/jpeg" href="/favicon.jpeg?v=3">
     <link rel="apple-touch-icon" href="/favicon.jpeg?v=3">
-    <link rel="stylesheet" href="style.css?v=22">
+    <link rel="stylesheet" href="style.css?v=23">
 </head>
 <body>
     <div class="app">
@@ -49,36 +49,321 @@
             <div class="guide-card">
                 <div class="guide-heading">
                     <div>
-                        <span class="eyebrow">QUICK REFERENCE</span>
-                        <h2 id="guideTitle">Syntax & controls</h2>
+                        <span class="eyebrow">MANUEL D'UTILISATION</span>
+                        <h2 id="guideTitle">Guide complet de C-Math Plotter</h2>
                     </div>
-                    <button class="guide-close" id="guideCloseButton" type="button" aria-label="Close guide">×</button>
+                    <button class="guide-close" id="guideCloseButton" type="button"
+                            aria-label="Fermer le guide">×</button>
                 </div>
-                <p class="guide-intro">Build an expression with the C math engine, then explore its graph.</p>
-                <div class="guide-grid">
-                    <section class="guide-section">
-                        <h3>Functions</h3>
-                        <div class="guide-chips">
-                            <code>sin(x)</code><code>cos(x)</code><code>tan(x)</code><code>sqrt(x)</code>
-                            <code>abs(x)</code><code>ln(x)</code><code>log(x)</code><code>exp(x)</code>
+                <p class="guide-intro">
+                    Ce manuel présente les outils de calcul, d'analyse et de visualisation disponibles.
+                    Les résultats sont numériques : ils dépendent de l'expression, des paramètres et
+                    de l'intervalle que vous choisissez.
+                </p>
+                <div class="guide-manual">
+                    <section class="guide-section guide-manual-section">
+                        <h3>1. Présentation & prise en main rapide</h3>
+                        <p>
+                            C-Math Plotter permet de tracer une ou deux fonctions, d'en examiner les
+                            valeurs et d'explorer plusieurs propriétés numériques. Le navigateur
+                            transmet l'expression et les paramètres au moteur de calcul écrit en C.
+                            Celui-ci analyse la formule, évalue la fonction pour une série de valeurs
+                            de <code>x</code> et renvoie les résultats au navigateur, qui dessine les
+                            courbes sur le canevas interactif.
+                        </p>
+                        <ol class="guide-manual-list">
+                            <li>
+                                Dans <strong>Fonctions f(x)</strong>, saisissez par exemple
+                                <code>x^2</code> dans le champ de l'expression.
+                            </li>
+                            <li>
+                                Choisissez <strong>X min</strong> et <strong>X max</strong> pour
+                                définir la partie de l'axe horizontal à afficher, par exemple
+                                <code>-5</code> et <code>5</code>. La borne minimale doit être
+                                inférieure à la borne maximale.
+                            </li>
+                            <li>
+                                Saisissez une valeur dans <strong>x =</strong>, par exemple
+                                <code>2</code>, puis cliquez sur <strong>Calculer & tracer</strong>
+                                (ou sur <strong>= Tracer</strong> dans le clavier mathématique).
+                            </li>
+                            <li>
+                                Lisez la valeur de <code>f(x)</code> et les autres résultats au-dessus
+                                du graphe. Le point correspondant à <code>x = 2</code> est
+                                <code>(2, 4)</code> pour <code>f(x) = x^2</code>.
+                            </li>
+                        </ol>
+                        <p class="guide-callout">
+                            L'intervalle X règle la fenêtre visible; la valeur <code>x =</code> règle
+                            le point auquel les résultats sont évalués. Ces réglages ont des rôles
+                            distincts.
+                        </p>
+                    </section>
+
+                    <section class="guide-section guide-manual-section">
+                        <h3>2. Syntaxe mathématique complète & règles d'écriture</h3>
+                        <p>
+                            Écrivez les expressions en notation habituelle, avec des nombres décimaux
+                            utilisant le point (par exemple <code>0.5</code>). Les noms de fonctions
+                            s'écrivent en minuscules et doivent être suivis de leur argument, de
+                            préférence entre parenthèses.
+                        </p>
+                        <div class="guide-manual-columns">
+                            <div>
+                                <h4>Opérateurs et priorité</h4>
+                                <ul class="guide-manual-list">
+                                    <li><code>+</code> et <code>-</code> : addition et soustraction.</li>
+                                    <li><code>*</code> et <code>/</code> : multiplication et division.</li>
+                                    <li><code>^</code> : puissance, par exemple <code>x^3</code> ou <code>2^(x+1)</code>.</li>
+                                    <li>
+                                        Les parenthèses regroupent les calculs :
+                                        <code>(x+1)(x-1)</code> développe conceptuellement
+                                        <code>x^2-1</code>.
+                                    </li>
+                                    <li>
+                                        Les puissances sont calculées avant les additions; les
+                                        parenthèses permettent de rendre l'ordre explicite.
+                                        Ainsi <code>-(x^2)</code> est le négatif du carré.
+                                    </li>
+                                </ul>
+                                <p>
+                                    La multiplication peut être implicite : <code>2x</code> signifie
+                                    <code>2*x</code>, <code>3sin(x)</code> signifie
+                                    <code>3*sin(x)</code>, et <code>(x+1)(x-1)</code> multiplie
+                                    les deux parenthèses. Vous pouvez aussi écrire explicitement
+                                    <code>*</code> si vous préférez.
+                                </p>
+                            </div>
+                            <div>
+                                <h4>Fonctions disponibles</h4>
+                                <ul class="guide-manual-list">
+                                    <li><code>sin(x)</code>, <code>cos(x)</code>, <code>tan(x)</code> : fonctions trigonométriques; leur unité dépend du mode RAD/DEG.</li>
+                                    <li><code>sqrt(x)</code> : racine carrée réelle, définie pour <code>x &gt;= 0</code>.</li>
+                                    <li><code>abs(x)</code> : valeur absolue, définie pour tout réel.</li>
+                                    <li><code>ln(x)</code> : logarithme naturel, défini pour <code>x &gt; 0</code>.</li>
+                                    <li><code>log(x)</code> : logarithme en base 10, défini pour <code>x &gt; 0</code>.</li>
+                                    <li><code>exp(x)</code> : exponentielle <code>e^x</code>; des valeurs extrêmes peuvent dépasser la plage numérique.</li>
+                                </ul>
+                                <h4>Variables et constantes</h4>
+                                <p>
+                                    <code>x</code> est la variable des fonctions. <code>pi</code> vaut
+                                    environ 3,14159 et <code>e</code> environ 2,71828. En mode suites,
+                                    <code>n</code> représente le rang et <code>u</code> le terme
+                                    précédent dans une récurrence. Les paramètres <code>a</code> et
+                                    <code>b</code> sont également utilisables dans une expression.
+                                </p>
+                            </div>
                         </div>
+                        <h4>Exemples d'expressions</h4>
+                        <ul class="guide-manual-list">
+                            <li>Polynôme : <code>x^3 - 3*x</code>.</li>
+                            <li>Fonction rationnelle : <code>(x^2 - 1)/(x + 2)</code> — elle n'est pas définie en <code>x = -2</code>.</li>
+                            <li>Composition trigonométrique : <code>sin(2*x + pi/4)</code>.</li>
+                            <li>Exponentielle amortie : <code>exp(-0.2*x)*sin(3*x)</code>.</li>
+                        </ul>
                     </section>
-                    <section class="guide-section">
-                        <h3>Variables & constants</h3>
-                        <div class="guide-chips">
-                            <code>x</code><code>n</code><code>u</code><code>pi</code><code>e</code>
-                        </div>
+
+                    <section class="guide-section guide-manual-section">
+                        <h3>3. Comparaison de fonctions f(x) et g(x)</h3>
+                        <p>
+                            Saisissez d'abord <code>f(x)</code>, puis utilisez
+                            <strong>+ Ajouter g(x)</strong> pour afficher un second champ. Entrez
+                            une autre expression, par exemple <code>cos(x)</code>. Les fonctions
+                            partagent le même intervalle horizontal et le même point d'évaluation,
+                            ce qui facilite leur comparaison directe.
+                        </p>
+                        <p>
+                            Le sélecteur au-dessus du graphe propose l'affichage de
+                            <strong>f(x)</strong>, de <strong>g(x)</strong> ou des
+                            <strong>deux fonctions</strong> (bouton « f & g »). Le mode choisi
+                            détermine les courbes visibles et l'échelle verticale est adaptée aux
+                            fonctions affichées. Les résultats colorés dans la barre indiquent,
+                            pour la valeur actuelle de <code>x</code>, <code>f(x)</code>,
+                            <code>f'(x)</code> et son intégrale, puis les valeurs correspondantes
+                            de <code>g(x)</code>, <code>g'(x)</code> et de son intégrale quand
+                            <code>g</code> est présente.
+                        </p>
                     </section>
-                    <section class="guide-section guide-examples">
-                        <h3>Implicit multiplication</h3>
-                        <p><code>2x</code><code>3sin(x)</code><code>(x+1)(x-1)</code></p>
+
+                    <section class="guide-section guide-manual-section">
+                        <h3>4. Analyse mathématique avancée — « Analyse & Courbes »</h3>
+                        <h4>Dérivées f'(x) et g'(x)</h4>
+                        <p>
+                            Activez les interrupteurs de dérivée pour tracer les courbes de
+                            <code>f'(x)</code> ou <code>g'(x)</code>. Le moteur estime ces dérivées
+                            numériquement à partir des valeurs de la fonction autour du point
+                            considéré; il ne transforme pas symboliquement la formule. Les courbes
+                            dérivées sont en pointillés et possèdent leur propre entrée de légende.
+                            La valeur affichée en <code>x = x₀</code> correspond à la pente locale :
+                            une pente positive indique que la fonction monte, une pente négative
+                            qu'elle descend, et une pente proche de zéro qu'elle est localement
+                            horizontale.
+                        </p>
+                        <h4>Concavité f''(x) et points d'inflexion</h4>
+                        <p>
+                            <strong>Analyser la concavité</strong> ajoute <code>f''(x)</code> et
+                            recherche les changements de signe de cette dérivée seconde. Une valeur
+                            positive est associée à une courbe convexe <strong>Convexe (∪)</strong>;
+                            une valeur négative à une courbe concave <strong>Concave (∩)</strong>.
+                            Lorsque la valeur est proche de zéro, le badge indique
+                            <strong>Inflexion / Linéaire</strong>. Les changements de signe détectés
+                            entre les échantillons sont interpolés et marqués sur la courbe
+                            <code>f(x)</code> avec leurs coordonnées approximatives.
+                        </p>
+                        <p>
+                            Ces marqueurs sont des estimations numériques sur la fenêtre échantillonnée :
+                            une tangence à zéro sans changement de signe, une discontinuité ou une
+                            zone trop étroite peut ne pas être détectée comme point d'inflexion.
+                        </p>
+                        <h4>Points remarquables : racines et intersections</h4>
+                        <p>
+                            Activez <strong>Points remarquables</strong> pour rechercher les racines
+                            de <code>f(x) = 0</code> et, si <code>g(x)</code> existe, les
+                            intersections où <code>f(x) = g(x)</code>. Les marqueurs et coordonnées
+                            affichés sont des approximations numériques dans l'intervalle visible.
+                            Pour repérer un point, zoomez dans sa zone ou resserrez les bornes X;
+                            une racine hors de l'intervalle ne peut pas apparaître.
+                        </p>
+                        <h4>Droite tangente</h4>
+                        <p>
+                            Activez <strong>Droite tangente</strong> pour tracer la tangente à
+                            <code>f</code> au point défini par <code>x = x₀</code>. Son équation est
+                            <code>T : y = f'(x₀)(x - x₀) + f(x₀)</code>. Près de <code>x₀</code>,
+                            cette droite donne une approximation linéaire de la fonction :
+                            <code>f(x₀ + h) ≈ f(x₀) + f'(x₀)h</code> pour un petit déplacement
+                            <code>h</code>. L'approximation est moins pertinente loin de <code>x₀</code>
+                            ou aux points où la fonction n'est pas dérivable.
+                        </p>
                     </section>
-                    <section class="guide-section">
-                        <h3>Graph controls</h3>
-                        <ul class="guide-controls">
-                            <li><span>Mouse wheel</span><span>Zoom</span></li>
-                            <li><span>Click & drag</span><span>Pan</span></li>
-                            <li><span>Hover the curve</span><span>(x, f(x))</span></li>
+
+                    <section class="guide-section guide-manual-section">
+                        <h3>5. Paramètres avancés & personnalisation</h3>
+                        <h4>Mode d'angle : RAD ou DEG</h4>
+                        <p>
+                            Choisissez <strong>RAD</strong> lorsque les angles sont exprimés en
+                            radians, convention habituelle en analyse mathématique
+                            (par exemple <code>sin(pi/2) = 1</code>). Choisissez <strong>DEG</strong>
+                            pour les degrés, fréquents en géométrie, en physique et en ingénierie
+                            (par exemple <code>sin(90) = 1</code>). Le réglage s'applique aux
+                            arguments de <code>sin</code>, <code>cos</code> et <code>tan</code>.
+                        </p>
+                        <h4>Paramètres dynamiques a et b</h4>
+                        <p>
+                            Insérez <code>a</code> ou <code>b</code> dans <code>f(x)</code> ou
+                            <code>g(x)</code>, par exemple <code>a*sin(b*x)</code>. Les curseurs
+                            correspondants apparaissent automatiquement. Déplacez-les pour modifier
+                            les valeurs et observer immédiatement l'effet sur la courbe :
+                            <code>a</code> multiplie l'amplitude ici, tandis que <code>b</code>
+                            modifie la fréquence horizontale. Dans une autre formule, ces paramètres
+                            peuvent agir différemment selon leur position.
+                        </p>
+                        <h4>Bornes d'intégration x₁ et x₂</h4>
+                        <p>
+                            Par défaut, <strong>Auto (= vue)</strong> utilise les bornes X actuellement
+                            affichées pour calculer l'intégrale numérique. Désactivez le mode Auto
+                            pour saisir des bornes fixes <code>x₁</code> et <code>x₂</code>, par
+                            exemple <code>0</code> et <code>2</code>. Elles restent indépendantes du
+                            zoom et du déplacement de la vue. L'intégrale signée tient compte de
+                            l'orientation des bornes : inverser leur ordre inverse le signe.
+                        </p>
+                        <h4>Axe Y : Auto ou Manuel</h4>
+                        <p>
+                            Le mode <strong>Auto</strong> ajuste verticalement le graphe aux valeurs
+                            visibles. Le mode manuel permet de fixer <strong>Y minimum</strong> et
+                            <strong>Y maximum</strong>. C'est utile pour étudier une fonction avec
+                            une asymptote verticale, comme <code>1/x</code> ou <code>tan(x)</code> :
+                            les très grandes valeurs près d'une singularité peuvent sinon comprimer
+                            le reste de la courbe. Choisissez des bornes Y adaptées pour examiner
+                            séparément chaque branche.
+                        </p>
+                    </section>
+
+                    <section class="guide-section guide-manual-section">
+                        <h3>6. Mode Suites numériques uₙ</h3>
+                        <p>
+                            Passez à <strong>Suites (uₙ)</strong> pour calculer et représenter des
+                            termes discrets. Contrairement à une fonction tracée continûment, une
+                            suite est définie rang par rang; le graphe utilise donc des tiges et des
+                            marqueurs aux indices entiers.
+                        </p>
+                        <h4>Suite explicite : uₙ = f(n)</h4>
+                        <p>
+                            Choisissez <strong>Explicite</strong> lorsque le terme se calcule
+                            directement à partir de son rang. Par exemple,
+                            <code>1/(n+1)</code> donne <code>u₀ = 1</code>,
+                            <code>u₁ = 1/2</code>, <code>u₂ = 1/3</code>. L'expression
+                            <code>(-1)^n/(n+1)</code> alterne de signe tout en se rapprochant de zéro.
+                            Réglez <strong>n minimum</strong>, <strong>n maximum</strong>, puis le
+                            rang demandé dans <strong>Évaluer pour n =</strong>.
+                        </p>
+                        <h4>Suite récurrente : uₙ₊₁ = f(uₙ)</h4>
+                        <p>
+                            Choisissez <strong>Récurrente</strong> quand chaque terme dépend du
+                            précédent. Saisissez la règle en utilisant <code>u</code> pour le terme
+                            actuel et indiquez <code>u₀</code>, la valeur initiale. Par exemple, avec
+                            <code>uₙ₊₁ = 0.5*u + 2</code> et <code>u₀ = 0</code>, on obtient
+                            <code>u₁ = 2</code>, <code>u₂ = 3</code>, <code>u₃ = 3.5</code>;
+                            les termes se rapprochent de <code>4</code>.
+                        </p>
+                        <p>
+                            Le tableau liste les termes calculés, et le résultat met en évidence le
+                            terme au rang demandé ainsi que le dernier terme. Sur le graphe, observez
+                            si les tiges se rapprochent d'une même hauteur (convergence), alternent
+                            autour d'une limite ou s'éloignent. La génération est limitée à
+                            500 termes par calcul.
+                        </p>
+                    </section>
+
+                    <section class="guide-section guide-manual-section">
+                        <h3>7. Navigation, outils, export & astuces</h3>
+                        <ul class="guide-manual-list">
+                            <li><strong>Zoom :</strong> utilisez la molette (ou le pincement tactile) sur le graphe, ou les boutons flottants <strong>+</strong> et <strong>−</strong>. Le zoom se fait autour de la zone centrale ou du pointeur selon le geste.</li>
+                            <li><strong>Déplacement :</strong> cliquez-glissez sur le canevas pour déplacer la fenêtre. <strong>Réinitialiser</strong> restaure les bornes X saisies.</li>
+                            <li><strong>Inspection :</strong> survolez une courbe pour afficher le réticule et une info-bulle de coordonnées; avec deux fonctions, le mode d'affichage détermine la courbe inspectée.</li>
+                            <li><strong>Tableau :</strong> ouvrez <strong>Tableau</strong>, choisissez le début, la fin et le pas Δx, puis cliquez sur <strong>Générer</strong>. <strong>Copier</strong> place les données tabulées dans le presse-papiers; vous pouvez ensuite les coller dans Excel ou un tableur similaire.</li>
+                            <li><strong>Plein écran :</strong> agrandit la zone du graphe. Utilisez le bouton pour quitter ou appuyez sur <kbd>Échap</kbd>.</li>
+                            <li><strong>Affichage :</strong> activez ou masquez la grille et l'ombrage de l'aire intégrée avec les options correspondantes.</li>
+                            <li><strong>Exporter :</strong> <strong>Exporter PNG</strong> télécharge une image du graphe, <strong>Exporter CSV</strong> télécharge les données échantillonnées, et <strong>Partager le lien</strong> prépare une URL avec les réglages de la vue.</li>
+                            <li><strong>Clavier mathématique :</strong> ouvrez <strong>Clavier</strong> pour insérer opérateurs et fonctions au curseur courant. Pour une fonction comme <code>sin()</code>, le curseur est placé dans les parenthèses; <kbd>⌫</kbd> efface et <kbd>C</kbd> vide l'expression active.</li>
+                            <li><strong>Exemples & Historique :</strong> choisissez une formule prédéfinie pour la charger rapidement; les expressions récentes peuvent être réutilisées depuis l'historique.</li>
+                        </ul>
+                    </section>
+
+                    <section class="guide-section guide-manual-section">
+                        <h3>8. Résolution de problèmes & astuces</h3>
+                        <ul class="guide-manual-list">
+                            <li>
+                                <strong>Expression refusée ou courbe absente :</strong> vérifiez les
+                                parenthèses, les opérateurs et l'orthographe en minuscules des
+                                fonctions. Utilisez le point dans les décimales :
+                                <code>0.25*x</code>, pas <code>0,25*x</code>.
+                            </li>
+                            <li>
+                                <strong>Valeurs manquantes près d'une singularité :</strong>
+                                <code>1/x</code> n'est pas définie en <code>x = 0</code>; sa courbe
+                                comporte deux branches séparées par une asymptote, et non un segment
+                                continu passant par zéro. <code>tan(x)</code> présente également des
+                                asymptotes. Zoomez ou fixez des bornes Y manuelles pour mieux voir
+                                chaque branche.
+                            </li>
+                            <li>
+                                <strong>Résultats difficiles à lire :</strong> resserrez l'intervalle
+                                X ou passez l'axe Y en mode manuel. Vérifiez aussi que
+                                <strong>Auto (= vue)</strong> est désactivé si vous souhaitez conserver
+                                des bornes d'intégration personnalisées pendant le zoom.
+                            </li>
+                            <li>
+                                <strong>Clavier :</strong> cliquez dans le champ à modifier avant
+                                d'utiliser le clavier mathématique. Vous pouvez aussi saisir une
+                                formule directement et appuyer sur <kbd>Entrée</kbd> pour lancer le
+                                calcul.
+                            </li>
+                            <li>
+                                <strong>Le graphe ne se met pas à jour :</strong> vérifiez que le
+                                serveur de calcul C est démarré et que son indicateur est disponible.
+                                En local, l'API est généralement accessible sur
+                                <code>localhost:8080</code>.
+                            </li>
                         </ul>
                     </section>
                 </div>
