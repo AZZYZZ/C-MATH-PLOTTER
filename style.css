@@ -1995,45 +1995,73 @@ a:focus-visible {
     }
 
     .topbar {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: space-between;
         min-height: 0;
-        gap: var(--space-1);
+        gap: 6px;
         margin-bottom: var(--space-2);
-        padding: 8px 12px;
+        padding: 6px 8px;
     }
 
     .brand {
-        flex-basis: 100%;
-        gap: 8px;
+        min-width: 0;
+        flex: 1 1 auto;
+        flex-basis: 0;
+        gap: 6px;
+        white-space: nowrap;
     }
 
     .brand-icon {
-        width: 28px;
-        height: 28px;
+        width: 24px;
+        height: 24px;
+    }
+
+    .brand-title-line {
+        min-width: 0;
+        flex-wrap: nowrap;
     }
 
     .brand h1 {
-        font-size: 1rem;
+        overflow: hidden;
+        font-size: clamp(0.74rem, 3.8vw, 0.9rem);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .brand p {
+        display: none;
     }
 
     .header-actions {
-        width: 100%;
-        min-width: 0;
-        flex: 1 1 100%;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 6px;
+        width: auto;
+        min-width: max-content;
+        flex: 0 0 auto;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        gap: 4px;
     }
 
     .header-button {
-        min-height: 42px;
-        gap: 6px;
-        padding: 7px 10px;
-        font-size: 0.7rem;
+        min-height: 36px;
+        gap: 4px;
+        padding: 0 6px;
+        font-size: clamp(0.58rem, 2.7vw, 0.66rem);
     }
 
     .guide-question {
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
+    }
+
+    .github-link svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .external-mark {
+        font-size: 0.62rem;
     }
 
     .controls-panel,
@@ -2469,6 +2497,10 @@ a:focus-visible {
     .keypad-toggle,
     .preset {
         min-height: 42px;
+    }
+
+    .topbar .header-button {
+        min-height: 36px;
     }
 
     .app.graph-fullscreen .secondary-btn {
