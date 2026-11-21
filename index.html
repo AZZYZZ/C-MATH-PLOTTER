@@ -22,7 +22,7 @@
     <link rel="icon" type="image/jpeg" href="/favicon.jpeg?v=3">
     <link rel="shortcut icon" type="image/jpeg" href="/favicon.jpeg?v=3">
     <link rel="apple-touch-icon" href="/favicon.jpeg?v=3">
-    <link rel="stylesheet" href="style.css?v=25">
+    <link rel="stylesheet" href="style.css?v=28">
 </head>
 <body>
     <div class="app">
@@ -448,7 +448,6 @@
                                 </svg>
                             </button>
                         </div>
-                        <span id="functionKeyboardSlot" hidden></span>
                         <button class="add-function-button" id="addGButton" type="button"
                                 aria-expanded="false" aria-controls="gExpressionRow">
                             <span aria-hidden="true">+</span> Ajouter g(x)
@@ -464,6 +463,7 @@
                                         title="Retirer g(x)">×</button>
                             </div>
                         </div>
+                        <span id="functionKeyboardSlot" hidden></span>
                     </section>
 
                     <section class="parameter-section" aria-label="Paramètres dynamiques" hidden>
@@ -905,11 +905,18 @@
             </section>
         </main>
         <footer class="app-footer">
-            <span class="footer-brand"><span aria-hidden="true">∫</span> C-Math Plotter</span>
-            <span>Calcul numérique en C <span class="footer-separator">·</span> Visualisation interactive</span>
-            <a class="footer-email" href="mailto:c.math.plotter@gmail.com">c.math.plotter@gmail.com</a>
+            <div class="footer-shortcuts" role="group" aria-label="Raccourcis">
+                <span class="footer-shortcut"><kbd>Entrée</kbd><span>Tracer</span></span>
+                <span class="footer-shortcut"><kbd>Molette</kbd><span>Zoom</span></span>
+                <span class="footer-shortcut"><kbd>Glisser</kbd><span>Déplacer</span></span>
+                <span class="footer-shortcut"><kbd>Échap</kbd><span>Quitter plein écran</span></span>
+            </div>
+            <div class="footer-meta">
+                <span class="footer-engine-label">C-Math Plotter <span aria-hidden="true">•</span> Moteur C</span>
+                <a class="footer-email" href="mailto:c.math.plotter@gmail.com">c.math.plotter@gmail.com</a>
+            </div>
         </footer>
     </div>
-    <script src="script.js?v=20" defer></script>
+    <script src="script.js?v=21" defer></script>
 </body>
 </html>

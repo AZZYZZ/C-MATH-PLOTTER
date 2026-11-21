@@ -1592,10 +1592,10 @@ button {
 }
 
 .result-item strong {
-    overflow: hidden;
+    overflow: visible;
     color: var(--lime);
     font: 0.82rem Consolas, 'Courier New', monospace;
-    text-overflow: ellipsis;
+    text-overflow: clip;
     white-space: nowrap;
 }
 
@@ -1610,7 +1610,6 @@ button {
 
 .concavity-badge {
     width: fit-content;
-    max-width: 100%;
     padding: 2px 6px;
     border: 1px solid rgba(148, 163, 184, 0.2);
     border-radius: 999px;
@@ -1849,31 +1848,62 @@ button {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: 12px;
     margin-top: 20px;
-    padding: 14px 4px 2px;
-    border-top: 1px solid var(--line);
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    background: rgba(9, 13, 18, 0.78);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     color: #6f7c8d;
     font-size: 0.75rem;
 }
 
-.footer-brand {
+.footer-shortcuts {
+    min-width: 0;
+    flex: 1 1 540px;
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+}
+
+.footer-shortcut {
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    color: #aeb9c8;
-    font-weight: 650;
-    letter-spacing: 0.03em;
+    white-space: nowrap;
 }
 
-.footer-brand > span {
-    color: var(--lime);
-    font: 1rem Georgia, serif;
+.footer-shortcut kbd {
+    min-width: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 6px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: rgba(7, 11, 16, 0.72);
+    color: #c4cfdb;
+    font: 0.68rem/1.2 Consolas, 'Courier New', monospace;
+    font-variant-numeric: tabular-nums;
 }
 
-.footer-separator {
-    padding: 0 3px;
-    color: var(--lime);
+.footer-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+}
+
+.footer-engine-label {
+    color: #8f9bab;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .footer-email {
@@ -2324,9 +2354,9 @@ a:focus-visible {
         overflow: visible;
         font-size: 0.8rem;
         text-overflow: clip;
-        white-space: normal;
-        overflow-wrap: anywhere;
-        word-break: break-word;
+        white-space: nowrap;
+        overflow-wrap: normal;
+        word-break: normal;
     }
 
     .canvas-wrapper,
@@ -2356,14 +2386,22 @@ a:focus-visible {
     .app-footer {
         align-items: center;
         flex-direction: column;
-        gap: 4px;
+        gap: 10px;
         margin-top: 12px;
-        padding: 16px 10px calc(20px + env(safe-area-inset-bottom));
+        padding: 12px 10px calc(14px + env(safe-area-inset-bottom));
         font-size: 0.75rem;
         text-align: center;
     }
 
-    .footer-brand {
+    .footer-shortcuts {
+        width: 100%;
+        justify-content: center;
+        flex-basis: auto;
+        gap: 8px 12px;
+    }
+
+    .footer-meta {
+        width: 100%;
         justify-content: center;
     }
 
@@ -3118,7 +3156,7 @@ a:focus-visible {
 }
 
 .result-bar .result-item {
-    min-height: 28px;
+    min-height: 0;
     flex: 0 1 auto;
     flex-direction: row;
     align-items: center;
@@ -3134,7 +3172,7 @@ a:focus-visible {
 }
 
 .result-bar .result-item strong {
-    max-width: 240px;
+    max-width: none;
 }
 
 .result-bar .concavity-badge {
@@ -3236,13 +3274,13 @@ a:focus-visible {
     }
 
     .result-bar .result-item {
-        min-height: 30px;
+        min-height: 0;
         gap: 5px;
-        padding: 4px 6px;
+        padding: 6px 10px;
     }
 
     .result-bar .result-item strong {
-        max-width: 44vw;
+        max-width: none;
     }
 }
 
@@ -3260,4 +3298,53 @@ a:focus-visible {
 #sequenceExpr:focus-visible {
     outline: none;
     box-shadow: none;
+}
+
+.result-bar {
+    overflow: visible;
+}
+
+.result-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.result-bar .result-item {
+    width: auto;
+    min-width: max-content;
+    max-width: none;
+    min-height: 0;
+    flex: 0 0 auto;
+    overflow: visible;
+    white-space: nowrap;
+    padding: 6px 10px;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+}
+
+.result-bar .result-item > *,
+.result-bar .result-item strong {
+    max-width: none;
+    overflow: visible;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+.result-bar .result-item strong {
+    text-overflow: clip;
+}
+
+.controls-panel .sidebar-accordion-summary {
+    transition: color 160ms ease, background 160ms ease, transform 160ms ease,
+        box-shadow 160ms ease;
+}
+
+.controls-panel .sidebar-accordion-summary:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.025);
+    box-shadow: inset 0 0 0 1px var(--line-strong);
 }

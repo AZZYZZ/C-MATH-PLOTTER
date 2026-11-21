@@ -12,23 +12,39 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <winsock2.h>
-#include <ws2tcpip.h>
 typedef SOCKET socket_t;
 #else
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/time.h>
 #include <unistd.h>
 typedef int socket_t;
 #define INVALID_SOCKET (-1)
 #define SOCKET_ERROR (-1)
 #endif
+#include <time.h>
 
 #define DEFAULT_PORT 8080
 #define RESPONSE_BUFFER_SIZE (2 * 1024 * 1024)
+#define MAX_HTTP_REQUEST_SIZE 8192
+#define MAX_EXPRESSION_LENGTH 255
+#define MAX_PARSE_DEPTH 32
+#define CLIENT_RECEIVE_TIMEOUT_SECONDS 2
+#define CLIENT_SEND_TIMEOUT_SECONDS 5
+#define CLIENT_REQUEST_TIMEOUT_SECONDS 5
 #define PI_VAL 3.14159265358979323846
 #define E_VAL  2.71828182845904523536
+#define SECURITY_HEADERS \
+    "X-Content-Type-Options: nosniff\r\n" \
+    "X-Frame-Options: DENY\r\n" \
+    "Referrer-Policy: strict-origin-when-cross-origin\r\n" \
+    "Content-Security-Policy: default-src 'self'; script-src 'self'; " \
+        "style-src 'self' 'unsafe-inline'; img-src 'self' data:; " \
+        "connect-src 'self' http://localhost:8080 http://127.0.0.1:8080; " \
+        "object-src 'none'; base-uri 'self'; form-action 'self'; " \
+        "frame-ancestors 'none'\r\n"
 
 // --- 1. PARSEUR MATHÉMATIQUE (Recursive Descent) ---
 typedef struct {
@@ -36,9 +52,20 @@ typedef struct {
     double a;
     double b;
     int angle_degrees;
+    unsigned *parse_depth;
 } EvalContext;
 
 double parse_expr(const char **p, const EvalContext *context);
+
+static int enter_parse_depth(const EvalContext *context) {
+    if (*context->parse_depth >= MAX_PARSE_DEPTH) return 0;
+    (*context->parse_depth)++;
+    return 1;
+}
+
+static void leave_parse_depth(const EvalContext *context) {
+    (*context->parse_depth)--;
+}
 
 void skip_spaces(const char **p) {
     while (**p && isspace((unsigned char)**p)) (*p)++;
@@ -63,34 +90,71 @@ double parse_primary(const char **p, const EvalContext *context) {
 
     if (**p == '(') {
         (*p)++;
+        if (!enter_parse_depth(context)) return NAN;
         double val = parse_expr(p, context);
+        leave_parse_depth(context);
         skip_spaces(p);
         if (**p != ')') return NAN;
         (*p)++;
         return val;
     }
 
-    // Les fonctions w les constantes
     if (strncmp(*p, "sin", 3) == 0) {
         *p += 3;
+        if (!enter_parse_depth(context)) return NAN;
         double value = parse_primary(p, context);
+        leave_parse_depth(context);
         return sin(context->angle_degrees ? value * PI_VAL / 180.0 : value);
     }
     if (strncmp(*p, "cos", 3) == 0) {
         *p += 3;
+        if (!enter_parse_depth(context)) return NAN;
         double value = parse_primary(p, context);
+        leave_parse_depth(context);
         return cos(context->angle_degrees ? value * PI_VAL / 180.0 : value);
     }
     if (strncmp(*p, "tan", 3) == 0) {
         *p += 3;
+        if (!enter_parse_depth(context)) return NAN;
         double value = parse_primary(p, context);
+        leave_parse_depth(context);
         return tan(context->angle_degrees ? value * PI_VAL / 180.0 : value);
     }
-    if (strncmp(*p, "sqrt", 4) == 0) { *p += 4; return sqrt(parse_primary(p, context)); }
-    if (strncmp(*p, "abs", 3) == 0)  { *p += 3; return fabs(parse_primary(p, context)); }
-    if (strncmp(*p, "exp", 3) == 0)  { *p += 3; return exp(parse_primary(p, context)); }
-    if (strncmp(*p, "log", 3) == 0)  { *p += 3; return log10(parse_primary(p, context)); }
-    if (strncmp(*p, "ln", 2) == 0)   { *p += 2; return log(parse_primary(p, context)); }
+    if (strncmp(*p, "sqrt", 4) == 0) {
+        *p += 4;
+        if (!enter_parse_depth(context)) return NAN;
+        double value = parse_primary(p, context);
+        leave_parse_depth(context);
+        return sqrt(value);
+    }
+    if (strncmp(*p, "abs", 3) == 0) {
+        *p += 3;
+        if (!enter_parse_depth(context)) return NAN;
+        double value = parse_primary(p, context);
+        leave_parse_depth(context);
+        return fabs(value);
+    }
+    if (strncmp(*p, "exp", 3) == 0) {
+        *p += 3;
+        if (!enter_parse_depth(context)) return NAN;
+        double value = parse_primary(p, context);
+        leave_parse_depth(context);
+        return exp(value);
+    }
+    if (strncmp(*p, "log", 3) == 0) {
+        *p += 3;
+        if (!enter_parse_depth(context)) return NAN;
+        double value = parse_primary(p, context);
+        leave_parse_depth(context);
+        return log10(value);
+    }
+    if (strncmp(*p, "ln", 2) == 0) {
+        *p += 2;
+        if (!enter_parse_depth(context)) return NAN;
+        double value = parse_primary(p, context);
+        leave_parse_depth(context);
+        return log(value);
+    }
     if (strncmp(*p, "pi", 2) == 0)   { *p += 2; return PI_VAL; }
 
     if (**p == 'x' || **p == 'X' || **p == 'n' || **p == 'N' ||
@@ -113,8 +177,14 @@ double parse_power(const char **p, const EvalContext *context);
 
 double parse_unary(const char **p, const EvalContext *context) {
     skip_spaces(p);
-    if (**p == '-') { (*p)++; return -parse_unary(p, context); }
-    if (**p == '+') { (*p)++; return parse_unary(p, context); }
+    if (**p == '-' || **p == '+') {
+        int negative = **p == '-';
+        (*p)++;
+        if (!enter_parse_depth(context)) return NAN;
+        double value = parse_unary(p, context);
+        leave_parse_depth(context);
+        return negative ? -value : value;
+    }
     return parse_power(p, context);
 }
 
@@ -123,7 +193,9 @@ double parse_power(const char **p, const EvalContext *context) {
     skip_spaces(p);
     if (**p == '^') {
         (*p)++;
+        if (!enter_parse_depth(context)) return NAN;
         double exp_val = parse_unary(p, context);
+        leave_parse_depth(context);
         return pow(base, exp_val);
     }
     return base;
@@ -154,7 +226,8 @@ double parse_expr(const char **p, const EvalContext *context) {
 
 double eval_function(const char *expr, double x, double a, double b, int angle_degrees) {
     const char *p = expr;
-    EvalContext context = { x, a, b, angle_degrees };
+    unsigned parse_depth = 0;
+    EvalContext context = { x, a, b, angle_degrees, &parse_depth };
     double result = parse_expr(&p, &context);
     skip_spaces(&p);
     return *p ? NAN : result;
@@ -202,9 +275,10 @@ static int url_decode(const char *src, size_t src_len, char *dest, size_t max_le
     size_t j = 0;
     while (j < src_len) {
         unsigned char value;
-        if (src[j] == '%' && j + 2 < src_len &&
-            isxdigit((unsigned char)src[j + 1]) &&
-            isxdigit((unsigned char)src[j + 2])) {
+        if (src[j] == '%') {
+            if (j + 2 >= src_len ||
+                !isxdigit((unsigned char)src[j + 1]) ||
+                !isxdigit((unsigned char)src[j + 2])) return -1;
             char hex[3] = { src[j + 1], src[j + 2], '\0' };
             value = (unsigned char)strtol(hex, NULL, 16);
             j += 3;
@@ -282,6 +356,129 @@ static void close_socket(socket_t socket_fd) {
 #endif
 }
 
+static int set_client_timeouts(socket_t socket_fd) {
+#ifdef _WIN32
+    DWORD receive_timeout_ms = CLIENT_RECEIVE_TIMEOUT_SECONDS * 1000;
+    DWORD send_timeout_ms = CLIENT_SEND_TIMEOUT_SECONDS * 1000;
+    if (setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO,
+            (const char *)&receive_timeout_ms, sizeof(receive_timeout_ms)) == SOCKET_ERROR ||
+        setsockopt(socket_fd, SOL_SOCKET, SO_SNDTIMEO,
+            (const char *)&send_timeout_ms, sizeof(send_timeout_ms)) == SOCKET_ERROR) return -1;
+    return 0;
+#else
+    struct timeval receive_timeout = { CLIENT_RECEIVE_TIMEOUT_SECONDS, 0 };
+    struct timeval send_timeout = { CLIENT_SEND_TIMEOUT_SECONDS, 0 };
+    if (setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO,
+            &receive_timeout, sizeof(receive_timeout)) == SOCKET_ERROR ||
+        setsockopt(socket_fd, SOL_SOCKET, SO_SNDTIMEO,
+            &send_timeout, sizeof(send_timeout)) == SOCKET_ERROR) return -1;
+    return 0;
+#endif
+}
+
+static int is_receive_timeout_error(void) {
+#ifdef _WIN32
+    return WSAGetLastError() == WSAETIMEDOUT;
+#else
+    return errno == EAGAIN || errno == EWOULDBLOCK;
+#endif
+}
+
+static int is_interrupted_error(void) {
+#ifdef _WIN32
+    return WSAGetLastError() == WSAEINTR;
+#else
+    return errno == EINTR;
+#endif
+}
+
+static int parse_request_line(const char *request, char *method, size_t method_capacity,
+                              char *target, size_t target_capacity) {
+    const char *line_end = strstr(request, "\r\n");
+    if (!line_end) return -1;
+
+    size_t line_length = (size_t)(line_end - request);
+    const char *first_space = memchr(request, ' ', line_length);
+    if (!first_space || first_space == request) return -1;
+    const char *target_start = first_space + 1;
+    const char *second_space = memchr(target_start, ' ',
+        (size_t)(line_end - target_start));
+    if (!second_space || second_space == target_start ||
+        second_space + 1 == line_end ||
+        memchr(second_space + 1, ' ', (size_t)(line_end - second_space - 1))) return -1;
+
+    size_t method_length = (size_t)(first_space - request);
+    size_t target_length = (size_t)(second_space - target_start);
+    size_t version_length = (size_t)(line_end - second_space - 1);
+    if (method_length >= method_capacity || target_length >= target_capacity ||
+        version_length != 8 ||
+        (memcmp(second_space + 1, "HTTP/1.1", 8) != 0 &&
+         memcmp(second_space + 1, "HTTP/1.0", 8) != 0)) return -1;
+
+    for (size_t i = 0; i < method_length; i++) {
+        unsigned char ch = (unsigned char)request[i];
+        if (ch <= 0x20 || ch >= 0x7f) return -1;
+    }
+    for (size_t i = 0; i < target_length; i++) {
+        unsigned char ch = (unsigned char)target_start[i];
+        if (ch <= 0x20 || ch >= 0x7f) return -1;
+    }
+
+    memcpy(method, request, method_length);
+    method[method_length] = '\0';
+    memcpy(target, target_start, target_length);
+    target[target_length] = '\0';
+    return 0;
+}
+
+static int ascii_header_name_equals(const char *name, size_t name_length,
+                                    const char *expected) {
+    size_t expected_length = strlen(expected);
+    if (name_length != expected_length) return 0;
+    for (size_t i = 0; i < name_length; i++) {
+        if (tolower((unsigned char)name[i]) !=
+            tolower((unsigned char)expected[i])) return 0;
+    }
+    return 1;
+}
+
+static int request_body_status(const char *request) {
+    const char *request_line_end = strstr(request, "\r\n");
+    const char *header_end = strstr(request, "\r\n\r\n");
+    if (!request_line_end || !header_end) return -1;
+
+    const char *line = request_line_end + 2;
+    while (line < header_end) {
+        const char *line_end = strstr(line, "\r\n");
+        if (!line_end || line_end > header_end) return -1;
+        const char *next_line = line_end + 2;
+        const char *colon = memchr(line, ':', (size_t)(line_end - line));
+        if (!colon || colon == line) return -1;
+
+        size_t name_length = (size_t)(colon - line);
+        const char *value = colon + 1;
+        while (value < line_end && (*value == ' ' || *value == '\t')) value++;
+
+        if (ascii_header_name_equals(line, name_length, "Transfer-Encoding")) {
+            return value < line_end ? 1 : -1;
+        }
+        if (ascii_header_name_equals(line, name_length, "Content-Length")) {
+            const char *value_end = line_end;
+            while (value_end > value &&
+                (value_end[-1] == ' ' || value_end[-1] == '\t')) value_end--;
+            if (value == value_end) return -1;
+            int has_nonzero_digit = 0;
+            for (const char *digit = value; digit < value_end; digit++) {
+                if (*digit < '0' || *digit > '9') return -1;
+                if (*digit != '0') has_nonzero_digit = 1;
+            }
+            if (has_nonzero_digit) return 1;
+        }
+        line = next_line;
+    }
+    return 0;
+}
+
 static int send_all(socket_t socket_fd, const char *data, size_t length) {
     while (length > 0) {
         size_t chunk = length > INT_MAX ? INT_MAX : length;
@@ -328,11 +525,12 @@ static int get_server_port(int *port) {
 }
 
 static int send_text_response(socket_t client, const char *status, const char *body) {
-    char header[512];
+    char header[1024];
     int header_length = snprintf(header, sizeof(header),
         "HTTP/1.1 %s\r\n"
         "Content-Type: text/plain; charset=utf-8\r\n"
         "Content-Length: %zu\r\n"
+        SECURITY_HEADERS
         "Connection: close\r\n\r\n",
         status, strlen(body));
     if (header_length < 0 || (size_t)header_length >= sizeof(header)) return -1;
@@ -392,6 +590,7 @@ static int build_sequence_response(char *buffer, size_t capacity, size_t *respon
     if (append_format(buffer, capacity, &offset,
             "HTTP/1.1 200 OK\r\n"
             "Content-Type: application/json\r\n"
+            SECURITY_HEADERS
             "Access-Control-Allow-Origin: *\r\n"
             "Connection: close\r\n\r\n"
             "{\"type\":\"%s\",\"terms\":[", type) != 0) return -1;
@@ -416,7 +615,7 @@ static int build_sequence_response(char *buffer, size_t capacity, size_t *respon
 
 static int handle_sequence_request(socket_t client, const char *query,
                                    char *buffer, size_t capacity) {
-    char expr[256], type[16], nmin_s[32], nmax_s[32], eval_n_s[32];
+    char expr[MAX_EXPRESSION_LENGTH + 1], type[16], nmin_s[32], nmax_s[32], eval_n_s[32];
     char u0_s[32], a_s[32], b_s[32], angle_s[8];
     double u0, parameter_a, parameter_b;
     int nmin, nmax, eval_n;
@@ -461,6 +660,7 @@ static int build_plot_response(char *buffer, size_t capacity, size_t *response_l
     if (append_format(buffer, capacity, &offset,
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: application/json\r\n"
+        SECURITY_HEADERS
         "Access-Control-Allow-Origin: *\r\n"
         "Connection: close\r\n\r\n"
         "{\"xval\":%.10g,\"yval\":", xval) != 0) return -1;
@@ -552,13 +752,13 @@ static int serve_static_file(socket_t client, const char *filename, const char *
         return send_text_response(client, "500 Internal Server Error", "Unable to read file\n");
     }
 
-    char header[512];
+    char header[1024];
     int header_length = snprintf(header, sizeof(header),
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: %s\r\n"
         "Content-Length: %ld\r\n"
         "Cache-Control: %s\r\n"
-        "X-Content-Type-Options: nosniff\r\n"
+        SECURITY_HEADERS
         "Connection: close\r\n\r\n",
         content_type, file_size, cache_control);
     if (header_length < 0 || (size_t)header_length >= sizeof(header) ||
@@ -672,21 +872,83 @@ int main(void) {
             break;
         }
 
-        char req[4096] = {0};
+        if (set_client_timeouts(client) != 0) {
+            fprintf(stderr, "Unable to set client socket timeouts.\n");
+            close_socket(client);
+            continue;
+        }
+
+        char req[MAX_HTTP_REQUEST_SIZE + 1] = {0};
+        size_t request_length = 0;
+        int headers_complete = 0;
+        int request_timed_out = 0;
+        int request_has_nul = 0;
+        time_t request_deadline = time(NULL) + CLIENT_REQUEST_TIMEOUT_SECONDS;
+        while (request_length < MAX_HTTP_REQUEST_SIZE) {
+            time_t now = time(NULL);
+            if (now != (time_t)-1 && now >= request_deadline) {
+                request_timed_out = 1;
+                break;
+            }
+
+            size_t remaining = MAX_HTTP_REQUEST_SIZE - request_length;
 #ifdef _WIN32
-        int received = recv(client, req, (int)sizeof(req) - 1, 0);
+            int received = recv(client, req + request_length, (int)remaining, 0);
 #else
-        ssize_t received = recv(client, req, sizeof(req) - 1, 0);
+            ssize_t received = recv(client, req + request_length, remaining, 0);
 #endif
-        if (received <= 0) {
+            if (received < 0) {
+                if (is_interrupted_error()) continue;
+                if (is_receive_timeout_error()) request_timed_out = 1;
+                break;
+            }
+            if (received == 0) break;
+            if (memchr(req + request_length, '\0', (size_t)received)) {
+                request_has_nul = 1;
+                break;
+            }
+            request_length += (size_t)received;
+            req[request_length] = '\0';
+            if (strstr(req, "\r\n\r\n")) {
+                headers_complete = 1;
+                break;
+            }
+        }
+
+        if (request_has_nul) {
+            send_text_response(client, "400 Bad Request", "Bad Request\n");
+            close_socket(client);
+            continue;
+        }
+        const char *header_end = strstr(req, "\r\n\r\n");
+        if (header_end &&
+            (size_t)(header_end - req) + 4 < request_length) {
+            send_text_response(client, "400 Bad Request", "Request body not supported\n");
+            close_socket(client);
+            continue;
+        }
+        if (!headers_complete) {
+            if (request_length >= MAX_HTTP_REQUEST_SIZE) {
+                send_text_response(client, "413 Content Too Large", "Request too large\n");
+            } else if (request_timed_out) {
+                send_text_response(client, "408 Request Timeout", "Request timed out\n");
+            } else if (request_length > 0) {
+                send_text_response(client, "400 Bad Request", "Bad Request\n");
+            }
             close_socket(client);
             continue;
         }
 
         char method[16];
         char request_path[1024];
-        if (sscanf(req, "%15s %1023s", method, request_path) != 2) {
+        if (parse_request_line(req, method, sizeof(method),
+                request_path, sizeof(request_path)) != 0) {
             send_text_response(client, "400 Bad Request", "Bad Request\n");
+            close_socket(client);
+            continue;
+        }
+        if (request_body_status(req) != 0) {
+            send_text_response(client, "400 Bad Request", "Request body not supported\n");
             close_socket(client);
             continue;
         }
@@ -713,8 +975,7 @@ int main(void) {
         } else if (strcmp(request_path, "/script.js") == 0) {
             static_filename = "script.js";
             static_content_type = "text/javascript; charset=utf-8";
-        } else if (strcmp(request_path, "/favicon.jpeg") == 0 ||
-                   strcmp(request_path, "/favicon.ico") == 0) {
+        } else if (strcmp(request_path, "/favicon.jpeg") == 0) {
             static_filename = "favicon.jpeg";
             static_content_type = "image/jpeg";
         }
@@ -740,7 +1001,7 @@ int main(void) {
             continue;
         }
 
-        char expr[256], xmin_s[32], xmax_s[32], xval_s[32], value_only_s[8];
+        char expr[MAX_EXPRESSION_LENGTH + 1], xmin_s[32], xmax_s[32], xval_s[32], value_only_s[8];
         char int_min_s[32], int_max_s[32], a_s[32], b_s[32], angle_s[8];
         double xmin, xmax, xval, int_min, int_max, parameter_a, parameter_b;
         if (get_param(query, "expr", expr, sizeof(expr)) < 0 ||
@@ -753,6 +1014,7 @@ int main(void) {
             get_param(query, "a", a_s, sizeof(a_s)) < 0 ||
             get_param(query, "b", b_s, sizeof(b_s)) < 0 ||
             get_param(query, "angle", angle_s, sizeof(angle_s)) < 0 ||
+            !expr[0] ||
             parse_finite_number(xmin_s, -10.0, &xmin) != 0 ||
             parse_finite_number(xmax_s, 10.0, &xmax) != 0 ||
             parse_finite_number(xval_s, 0.0, &xval) != 0 ||
